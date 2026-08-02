@@ -1,0 +1,146 @@
+// MOTIF WALK domain schema.
+//
+// SQLite via Prisma. Nested/array-valued domain structures (configuration,
+// excerpts, links, motif lists) are stored as JSON-serialized strings; the
+// server layer (src/server) is the only code allowed to (de)serialize them,
+// and it validates with the Zod schemas in src/schemas on the way in and out.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model WalkProject {
+  id             String  @id @default(cuid())
+  title          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  mode           String   @default("RANDOM") // WalkMode
+  seed           String
+  startNodeId    String?
+  endpointNodeId String?
+  configuration  String // JSON: WalkConfiguration (Zod-validated)
+  status         String   @default("DRAFT") // WalkProjectStatus
+
+  sourceNodes    SourceNode[]
+  narrativeNodes NarrativeNode[]
+  narrativeEdges NarrativeEdge[]
+  draftSegments  DraftSegment[]
+  jobs           GenerationJob[]
+}
+
+// Every visited Wikipedia page, not only nodes retained in the narrative.
+model SourceNode {
+  id               String @id @default(cuid())
+  projectId        String
+  project          WalkProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  wikipediaPageId  Int
+  wikidataId       String?
+  title            String
+  url              String
+  summary          String
+  relevantExtracts String @default("[]") // JSON: EvidenceExcerpt[]
+  dateStart        Int?
+  dateEnd          Int?
+  locations        String @default("[]") // JSON: string[]
+  entityTypes      String @default("[]") // JSON: string[]
+  categories       String @default("[]") // JSON: string[]
+  outgoingLinks    String @default("[]") // JSON: LinkCandidate[]
+  visitIndex       Int
+  rawWalkScore     Float?
+
+  narrativeNodes NarrativeNode[]
+
+  @@index([projectId, visitIndex])
+}
+
+// LLM-orchestrated interpretation of a selected source node.
+model NarrativeNode {
+  id                   String @id @default(cuid())
+  projectId            String
+  project              WalkProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceNodeId         String
+  sourceNode           SourceNode @relation(fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  displayTitle         String
+  narrativeFunction    String // NarrativeFunction
+  historicalClaim      String
+  significance         String
+  actorHorizon         String?
+  laterInterpretation  String?
+  presentMotif         String?
+  immanentComplication String?
+  proposedNewMotif     String?
+  visualObjects        String @default("[]") // JSON: string[]
+  confidence           Float
+  positionX            Float  @default(0)
+  positionY            Float  @default(0)
+  orderIndex           Int
+
+  outgoingEdges NarrativeEdge[] @relation("EdgeSource")
+  incomingEdges NarrativeEdge[] @relation("EdgeTarget")
+  draftSegments DraftSegment[]
+
+  @@index([projectId, orderIndex])
+}
+
+model NarrativeEdge {
+  id                    String @id @default(cuid())
+  projectId             String
+  project               WalkProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceNarrativeNodeId String
+  sourceNarrativeNode   NarrativeNode @relation("EdgeSource", fields: [sourceNarrativeNodeId], references: [id], onDelete: Cascade)
+  targetNarrativeNodeId String
+  targetNarrativeNode   NarrativeNode @relation("EdgeTarget", fields: [targetNarrativeNodeId], references: [id], onDelete: Cascade)
+  edgeType              String // EdgeType
+  warrantClass          String // WarrantClass
+  transitionClaim       String
+  carrier               String
+  inheritedPressure     String
+  transformedPressure   String
+  evidence              String @default("[]") // JSON: EvidenceExcerpt[]
+  counterargument       String?
+  confidence            Float
+  userApproved          Boolean @default(false)
+  verifierVerdict       String? // PASS | REVISE | REJECT
+  verifierCritique      String?
+
+  draftSegments DraftSegment[]
+
+  @@index([projectId])
+}
+
+model DraftSegment {
+  id              String @id @default(cuid())
+  projectId       String
+  project         WalkProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  narrativeNodeId String?
+  narrativeNode   NarrativeNode? @relation(fields: [narrativeNodeId], references: [id], onDelete: SetNull)
+  narrativeEdgeId String?
+  narrativeEdge   NarrativeEdge? @relation(fields: [narrativeEdgeId], references: [id], onDelete: SetNull)
+  segmentType     String // DraftSegmentType
+  text            String
+  orderIndex      Int
+  userEdited      Boolean @default(false)
+  generationMeta  String? // JSON: { generatedFromNodeIds, generatedFromEdgeIds, promptVersion, model, generatedAt }
+
+  @@index([projectId, orderIndex])
+}
+
+model GenerationJob {
+  id          String @id @default(cuid())
+  projectId   String
+  project     WalkProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type        String
+  status      String @default("QUEUED") // QUEUED | RUNNING | COMPLETE | FAILED
+  progress    Float  @default(0)
+  currentStep String @default("")
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId, createdAt])
+}
