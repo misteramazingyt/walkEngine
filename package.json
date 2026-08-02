@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "setup": "prisma migrate deploy && prisma generate",
     "dev": "next dev",
+    "dev:fixture": "cross-env WIKIPEDIA_MODE=fixture LLM_MODE=fixture next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -30,6 +32,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",

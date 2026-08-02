@@ -1,0 +1,7 @@
+# Shell scripts must keep LF endings even when checked out on Windows with
+# core.autocrlf=true: `docker build` copies the working tree into the image,
+# and a CRLF docker-entrypoint.sh dies there with "bad interpreter".
+*.sh text eol=lf
+
+# The lockfile is machine-generated; don't let diff heuristics chew on it.
+package-lock.json -diff linguist-generated

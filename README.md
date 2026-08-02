@@ -124,24 +124,63 @@ which phase activates them. See [PLAN.md](PLAN.md) for the roadmap.
 
 ## Getting started
 
+Node 22+ and npm 10+. Nothing else — the database is a file and the only
+native dependency (`better-sqlite3`) ships prebuilt binaries.
+
 ```bash
+git clone https://github.com/misteramazingyt/walkEngine.git
+cd walkEngine
 npm install
-npx prisma migrate dev   # creates ./dev.db and generates the client
-npm run dev              # http://localhost:3000
+cp .env.example .env      # every default is workable; edit to add a key
+npm run setup             # applies migrations to ./dev.db, generates the client
+npm run dev               # http://localhost:3000
 ```
 
-Copy `.env.example` to `.env` if it does not exist. `ANTHROPIC_API_KEY` /
-`ANTHROPIC_MODEL` are unused until Phase 4; no live LLM calls exist yet.
+`npm run setup` does both halves deliberately: Prisma 7 does **not** generate
+the client as a side effect of running migrations, and the app imports it from
+`src/generated/prisma`, so a clone that only migrates fails to boot with an
+unresolved `@/generated/prisma/client`. Re-run `npm run setup` after any pull
+that touches `prisma/`.
+
+Random and criteriological walks work immediately against live Wikipedia and
+Wikidata — no key, no account. The three LLM-driven modes (Burke, Anamnetic,
+BurkeCluster) call Gemini, so they need either
+
+- `GEMINI_API_KEY` in `.env` ([aistudio.google.com/apikey](https://aistudio.google.com/apikey),
+  optionally `GEMINI_MODEL`; the default is `gemini-2.5-flash`), or
+- **fixture mode** — `npm run dev:fixture` sets `WIKIPEDIA_MODE=fixture` and
+  `LLM_MODE=fixture`, swapping live Wikipedia for the deterministic
+  demonstration graph (touchstone → coinage → … → radar) and Gemini for
+  deterministic oracles. Every mode runs offline, with no key and no HTTP.
+  The fixture graph is small and closed, so a seed or start has to name a
+  page inside it — `Touchstone (assaying tool)`, `Coinage`, `Alexandria`,
+  `Radar` — otherwise the walk stops and says the article is not there.
+
+Without one of the two, a Burke walk fails loudly and says the key is missing;
+it never invents content to fill the gap.
+
+### On Windows
+
+Everything above works as written in PowerShell, except `cp .env.example .env`
+→ `copy .env.example .env`. Local development needs no WSL, no toolchain, and
+no Docker. If you plan to `docker build` from a Windows clone, keep
+`core.autocrlf` at its default — `.gitattributes` pins `*.sh` to LF so
+`docker-entrypoint.sh` stays executable inside the image.
 
 ## Scripts
 
-| Command             | Purpose                                |
-| ------------------- | -------------------------------------- |
-| `npm run dev`       | Development server                     |
-| `npm run build`     | Production build                       |
-| `npm run lint`      | ESLint                                 |
-| `npm run typecheck` | `tsc --noEmit` (strict mode)           |
-| `npm test`          | Vitest (uses a temp SQLite database)   |
+| Command               | Purpose                                          |
+| --------------------- | ------------------------------------------------ |
+| `npm run setup`       | Apply migrations and generate the Prisma client   |
+| `npm run dev`         | Development server                                |
+| `npm run dev:fixture` | Development server, fully offline (no API key)    |
+| `npm run build`       | Production build                                  |
+| `npm run lint`        | ESLint                                            |
+| `npm run typecheck`   | `tsc --noEmit` (strict mode)                      |
+| `npm test`            | Vitest (uses a temp SQLite database)              |
+
+The SQLite file is `./dev.db`, ignored by git; delete it and re-run
+`npm run setup` for a clean slate.
 
 ## Deployment
 
@@ -178,8 +217,9 @@ The entrypoint runs `prisma migrate deploy` against the volume on every boot
 app and schema upgrades apply themselves on redeploy. The database lives at
 `/data/motif-walk.db` on the named volume; back it up by copying that file.
 
-Set `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` via environment (compose file or
-`docker run -e`) once Phase 4 lands; nothing reads them yet.
+Set `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`) via environment — the
+compose file or `docker run -e GEMINI_API_KEY=...` — to enable the LLM-driven
+walk modes in the container; the deterministic modes need nothing.
 
 ### Bare Node
 
