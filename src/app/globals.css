@@ -1,26 +1,83 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* MOTIF WALK design tokens — early graphical workstation grammar.
+   Pale gray work surface, muted indigo title bars, beveled controls used
+   sparingly. No neon, no parchment. */
+@theme {
+  --color-surface: #d6d3cb;
+  --color-surface-raised: #e2dfd8;
+  --color-surface-sunken: #f4f2ee;
+  --color-bevel-light: #ffffff;
+  --color-bevel-dark: #8b8778;
+  --color-bevel-darker: #4c4a42;
+  --color-titlebar: #3d3d70;
+  --color-titlebar-inactive: #7d7d95;
+  --color-titlebar-text: #f2f1fa;
+  --color-ink: #26251f;
+  --color-ink-dim: #5c594d;
+  --color-accent: #32327a;
+  --color-warn: #8f2f2f;
+  --color-ok: #2f6034;
+
+  --font-label:
+    Tahoma, "MS Sans Serif", "Segoe UI", Verdana, ui-sans-serif, sans-serif;
+  --font-prose: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --font-mono: "Courier New", ui-monospace, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-label);
+  font-size: 13px;
+}
+
+/* Classic raised control bevel. */
+.bevel-out {
+  background: var(--color-surface-raised);
+  box-shadow:
+    inset 1px 1px 0 var(--color-bevel-light),
+    inset -1px -1px 0 var(--color-bevel-darker),
+    inset 2px 2px 0 var(--color-surface),
+    inset -2px -2px 0 var(--color-bevel-dark);
+}
+
+/* Sunken wells: inputs, canvases, work areas. */
+.bevel-in {
+  background: var(--color-surface-sunken);
+  box-shadow:
+    inset 1px 1px 0 var(--color-bevel-dark),
+    inset -1px -1px 0 var(--color-bevel-light),
+    inset 2px 2px 0 var(--color-bevel-darker);
+}
+
+.bevel-out:active:not(:disabled):not(.no-press) {
+  box-shadow:
+    inset 1px 1px 0 var(--color-bevel-darker),
+    inset -1px -1px 0 var(--color-bevel-light),
+    inset 2px 2px 0 var(--color-bevel-dark);
+}
+
+/* Thin group-box frame (fieldset). */
+.groupbox {
+  border: 1px solid var(--color-bevel-dark);
+  box-shadow: 1px 1px 0 var(--color-bevel-light);
+}
+
+.titlebar-gradient {
+  background: linear-gradient(
+    to right,
+    var(--color-titlebar),
+    color-mix(in srgb, var(--color-titlebar) 72%, var(--color-surface))
+  );
+}
+
+/* React Flow canvas inherits the sunken-well look. */
+.react-flow__attribution {
+  background: transparent;
 }
