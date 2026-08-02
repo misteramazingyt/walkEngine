@@ -129,6 +129,42 @@ scores, and every exclusion with its reason.
 Still deferred: geographic bounds (free-text region needs resolution against
 coordinates — Phase 4+), LLM rerank invocation (needs the live provider).
 
+### Phase 3.5 — BurkeWalker mode + Gemini provider  ✅ (user-requested)
+
+The provider decision changed by user request: **Gemini** (via
+`GEMINI_API_KEY` / `GEMINI_MODEL`, default gemini-2.5-flash) is the first
+live `LanguageModelProvider` implementation, not Anthropic. The interface
+is unchanged; Phase 4 orchestration will ride the same provider.
+
+- [x] GeminiProvider: JSON mode, Zod-validated structured output, raw
+      response preserved on failure, exactly one retry carrying the
+      validation errors, then loud failure — no silent coercion
+- [x] BURKE walk mode — a curiosity program, not a weight vector:
+      - Seed (OBJECT or QUESTION, the user's lived experience)
+      - Curiosity priming → salience weights (LLM "prime" stage; motif
+        modules merge their sensitivity in)
+      - The six-question grammar (PRECONDITION / PROBLEM / SELECTION /
+        TRANSFORMATION / ANALOGY / RECODING) — the walker never asks
+        arbitrary questions
+      - Move criteria per candidate (novelty, historical depth, narrative
+        tension, conceptual fit, explanatory gain, return potential) with
+        the discard rule: no return potential → no traversal, enforced by
+        the engine, not just suggested
+      - Four-field notes (observation / question / changed understanding /
+        return to seed) — narrative compression, never explanations
+      - Narrative elasticity: every N pages a three-sentence story;
+        stable story ⇒ explanatory saturation stop
+      - Stopping condition is redescription (or saturation); maxPages is
+        an honestly-labeled safety cap
+- [x] Motif presets as behavioral modules (Authenticity under
+      Mechanization; Authority) — sensitivity, preferred questions,
+      stopping condition
+- [x] Versioned prompt files (burke-prime/step/elasticity/recode v1)
+- [x] BurkeRun persistence; journal UI (salience, notes, checkpoints,
+      final recoding); FixtureBurkeOracle for tests/offline mode
+- Note: Burke walks are NOT seed-reproducible even at temperature 0 — the
+  oracle is a live model. The rng governs candidate pool sampling only.
+
 ### Phase 4 — significance orchestration
 
 - Candidate-node dossiers (fetched facts / inferred metadata / LLM

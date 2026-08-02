@@ -80,6 +80,29 @@ export const walkConfigurationSchema = z.object({
       message: "draftTargetWords.min must not exceed max",
     })
     .default({ min: 1800, max: 2500 }),
+
+  // BurkeWalker: a curiosity program, not a weight vector. The seed is the
+  // user's lived experience; priming is a field of salience, not a thesis.
+  burke: z
+    .object({
+      seedKind: z.enum(["OBJECT", "QUESTION"]).default("OBJECT"),
+      seedText: z.string().default(""),
+      priming: z.string().default(""),
+      /** Name of a preset motif module, or "" for none. */
+      motif: z.string().default(""),
+      /** Elasticity checkpoint cadence in pages (Burke's 5–10 rule). */
+      elasticityInterval: z.number().int().min(3).max(20).default(6),
+      /** Safety cap — the real stopping condition is redescription. */
+      maxPages: z.number().int().min(3).max(40).default(12),
+    })
+    .default({
+      seedKind: "OBJECT",
+      seedText: "",
+      priming: "",
+      motif: "",
+      elasticityInterval: 6,
+      maxPages: 12,
+    }),
 });
 
 export type WalkConfiguration = z.infer<typeof walkConfigurationSchema>;

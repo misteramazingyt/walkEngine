@@ -2,8 +2,42 @@
 // Defined as const tuples so both TypeScript unions and Zod enums derive
 // from a single source of truth.
 
-export const WALK_MODES = ["RANDOM", "CRITERIOLOGICAL"] as const;
+export const WALK_MODES = ["RANDOM", "CRITERIOLOGICAL", "BURKE"] as const;
 export type WalkMode = (typeof WALK_MODES)[number];
+
+// The BurkeWalker's entire recursive question grammar. The walker never
+// asks arbitrary questions — it chooses among exactly these six.
+export const BURKE_QUESTIONS = [
+  "PRECONDITION",
+  "PROBLEM",
+  "SELECTION",
+  "TRANSFORMATION",
+  "ANALOGY",
+  "RECODING",
+] as const;
+export type BurkeQuestion = (typeof BURKE_QUESTIONS)[number];
+
+export const BURKE_QUESTION_LABELS: Record<BurkeQuestion, string> = {
+  PRECONDITION: "What had to exist already?",
+  PROBLEM: "What problem did this solve?",
+  SELECTION: "Why this solution?",
+  TRANSFORMATION: "What changed afterwards?",
+  ANALOGY: "Where else does this structure occur?",
+  RECODING: "How should the original object now be redescribed?",
+};
+
+// Criteria for moving: every candidate page is judged on these before the
+// walker traverses. Return potential is the Burkean one — can this page
+// eventually illuminate the seed? If not, discard.
+export const BURKE_MOVE_CRITERIA = [
+  "novelty",
+  "historicalDepth",
+  "narrativeTension",
+  "conceptualFit",
+  "explanatoryGain",
+  "returnPotential",
+] as const;
+export type BurkeMoveCriterion = (typeof BURKE_MOVE_CRITERIA)[number];
 
 export const PROJECT_STATUSES = [
   "DRAFT",

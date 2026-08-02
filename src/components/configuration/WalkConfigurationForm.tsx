@@ -7,6 +7,7 @@ import {
   CRITERION_LABELS,
 } from "@/domain/enums";
 import { LLM_ONLY_CRITERIA } from "@/domain/walk/features";
+import { MOTIF_PRESETS } from "@/domain/motifs/presets";
 import type { WalkConfiguration } from "@/schemas/walk-configuration";
 import {
   FieldRow,
@@ -58,6 +59,11 @@ export function WalkConfigurationForm({
   ) => onChange({ ...value, [key]: v });
 
   const criteriological = value.walkMode === "CRITERIOLOGICAL";
+  const burke = value.walkMode === "BURKE";
+  const setBurke = <K extends keyof WalkConfiguration["burke"]>(
+    key: K,
+    v: WalkConfiguration["burke"][K],
+  ) => set("burke", { ...value.burke, [key]: v });
 
   return (
     <div className="flex flex-col gap-2 p-2">
@@ -73,6 +79,7 @@ export function WalkConfigurationForm({
             >
               <option value="RANDOM">Random</option>
               <option value="CRITERIOLOGICAL">Criteriological</option>
+              <option value="BURKE">Burke walker</option>
             </RetroSelect>
           </FieldRow>
           <FieldRow label="Sampling" htmlFor="sampling-mode">
@@ -305,6 +312,94 @@ export function WalkConfigurationForm({
             />
           </div>
         </GroupBox>
+
+        {burke && (
+          <GroupBox legend="Burke walker — curiosity program" className="min-w-0 flex-1 sm:min-w-96">
+            <FieldRow label="Seed kind" htmlFor="burke-seed-kind">
+              <RetroSelect
+                id="burke-seed-kind"
+                value={value.burke.seedKind}
+                onChange={(e) =>
+                  setBurke(
+                    "seedKind",
+                    e.target.value as WalkConfiguration["burke"]["seedKind"],
+                  )
+                }
+              >
+                <option value="OBJECT">Object (a lived proposition)</option>
+                <option value="QUESTION">Question</option>
+              </RetroSelect>
+            </FieldRow>
+            <FieldRow label="Seed" htmlFor="burke-seed-text">
+              <RetroInput
+                id="burke-seed-text"
+                className="w-full max-w-md"
+                value={value.burke.seedText}
+                placeholder={
+                  value.burke.seedKind === "OBJECT"
+                    ? "e.g. AI slop is soulless."
+                    : "e.g. Why does TikTok feel authoritative?"
+                }
+                onChange={(e) => setBurke("seedText", e.target.value)}
+              />
+            </FieldRow>
+            <div className="mt-1">
+              <label htmlFor="burke-priming" className="mb-1 block text-[12px] font-bold">
+                Curiosity priming (a field of salience, not a thesis)
+              </label>
+              <RetroTextarea
+                id="burke-priming"
+                rows={3}
+                className="w-full"
+                value={value.burke.priming}
+                placeholder="Attend especially to transitions between uniqueness and mass production, authenticity and mechanism, artistic labor, Romantic conceptions of soul, technological reproduction, institutions of taste…"
+                onChange={(e) => setBurke("priming", e.target.value)}
+              />
+            </div>
+            <div className="mt-1 grid grid-cols-1 gap-x-4 sm:grid-cols-3">
+              <FieldRow label="Motif module" htmlFor="burke-motif">
+                <RetroSelect
+                  id="burke-motif"
+                  value={value.burke.motif}
+                  onChange={(e) => setBurke("motif", e.target.value)}
+                >
+                  <option value="">None</option>
+                  {MOTIF_PRESETS.map((m) => (
+                    <option key={m.name} value={m.name}>
+                      {m.name}
+                    </option>
+                  ))}
+                </RetroSelect>
+              </FieldRow>
+              <FieldRow label="Elasticity every" htmlFor="burke-elasticity">
+                <RetroInput
+                  id="burke-elasticity"
+                  type="number"
+                  min={3}
+                  max={20}
+                  className="w-16"
+                  title="Every N pages: tell the three-sentence story of the seed; a stable story means saturation"
+                  value={value.burke.elasticityInterval}
+                  onChange={(e) =>
+                    setBurke("elasticityInterval", Number(e.target.value))
+                  }
+                />
+              </FieldRow>
+              <FieldRow label="Max pages (cap)" htmlFor="burke-max-pages">
+                <RetroInput
+                  id="burke-max-pages"
+                  type="number"
+                  min={3}
+                  max={40}
+                  className="w-16"
+                  title="Safety cap only — the real stopping condition is redescription of the seed"
+                  value={value.burke.maxPages}
+                  onChange={(e) => setBurke("maxPages", Number(e.target.value))}
+                />
+              </FieldRow>
+            </div>
+          </GroupBox>
+        )}
 
         <GroupBox legend="Historical consciousness" className="min-w-56">
           <div className="flex flex-col gap-0.5">

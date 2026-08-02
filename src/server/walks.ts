@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { createRng } from "@/domain/walk/prng";
 import { runRandomWalk } from "@/domain/walk/random-walk";
+import { runBurkeWalk } from "@/domain/burke/engine";
+import type {
+  BurkeNote,
+  BurkeOracle,
+  ElasticityCheckpoint,
+  SalienceWeight,
+} from "@/domain/burke/types";
+import { createBurkeOracle } from "@/server/burke-oracle-factory";
 import {
   runCriteriologicalWalk,
   type EnrichedVisitedNode,
@@ -48,6 +56,16 @@ export interface CandidateWalkDto {
   pathScore: PathScore;
   titles: string[];
   chosen: boolean;
+}
+
+export interface BurkeRunDto {
+  id: string;
+  salience: SalienceWeight[];
+  notes: BurkeNote[];
+  checkpoints: ElasticityCheckpoint[];
+  finalRedescription: string;
+  endReason: string;
+  createdAt: string;
 }
 
 export interface GenerationJobDto {
@@ -129,7 +147,7 @@ function jobToDto(row: {
 }
 
 export async function getWalk(projectId: string, db: PrismaClient = prisma) {
-  const [nodes, candidates, latestJob] = await Promise.all([
+  const [nodes, candidates, latestJob, burkeRun] = await Promise.all([
     db.sourceNode.findMany({
       where: { projectId },
       orderBy: { visitIndex: "asc" },
@@ -140,6 +158,10 @@ export async function getWalk(projectId: string, db: PrismaClient = prisma) {
     }),
     db.generationJob.findFirst({
       where: { projectId, type: "WALK" },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.burkeRun.findFirst({
+      where: { projectId },
       orderBy: { createdAt: "desc" },
     }),
   ]);
@@ -172,9 +194,22 @@ export async function getWalk(projectId: string, db: PrismaClient = prisma) {
     };
   });
 
+  const burke: BurkeRunDto | null = burkeRun
+    ? {
+        id: burkeRun.id,
+        salience: JSON.parse(burkeRun.salience) as SalienceWeight[],
+        notes: JSON.parse(burkeRun.notes) as BurkeNote[],
+        checkpoints: JSON.parse(burkeRun.checkpoints) as ElasticityCheckpoint[],
+        finalRedescription: burkeRun.finalRedescription,
+        endReason: burkeRun.endReason,
+        createdAt: burkeRun.createdAt.toISOString(),
+      }
+    : null;
+
   return {
     sourceNodes,
     candidateWalks,
+    burkeRun: burke,
     latestJob: latestJob ? jobToDto(latestJob) : null,
   };
 }
@@ -184,6 +219,7 @@ export async function startWalk(
   input: StartWalkInput,
   db: PrismaClient = prisma,
   gatewayFactory: (language: string, budget: number) => GatewayBundle = createGatewayBundle,
+  oracleFactory: () => BurkeOracle = createBurkeOracle,
 ): Promise<
   | { ok: true; job: GenerationJobDto }
   | { ok: false; status: number; error: string }
@@ -243,6 +279,7 @@ export async function startWalk(
   void executeWalkJob({
     db,
     gatewayFactory,
+    oracleFactory,
     projectId,
     jobId: job.id,
     configuration,
@@ -330,13 +367,21 @@ export async function chooseCandidateWalk(
 async function executeWalkJob(options: {
   db: PrismaClient;
   gatewayFactory: (language: string, budget: number) => GatewayBundle;
+  oracleFactory: () => BurkeOracle;
   projectId: string;
   jobId: string;
   configuration: ReturnType<typeof walkConfigurationSchema.parse>;
   pinnedStartTitle: string | null;
 }): Promise<void> {
-  const { db, gatewayFactory, projectId, jobId, configuration, pinnedStartTitle } =
-    options;
+  const {
+    db,
+    gatewayFactory,
+    oracleFactory,
+    projectId,
+    jobId,
+    configuration,
+    pinnedStartTitle,
+  } = options;
 
   const failJob = async (message: string) => {
     await db.generationJob.update({
@@ -361,8 +406,10 @@ async function executeWalkJob(options: {
 
     if (configuration.walkMode === "RANDOM") {
       await executeRandomWalk();
-    } else {
+    } else if (configuration.walkMode === "CRITERIOLOGICAL") {
       await executeCriteriologicalWalk();
+    } else {
+      await executeBurkeWalk();
     }
   } catch (error) {
     await failJob(error instanceof Error ? error.message : String(error));
@@ -413,6 +460,7 @@ async function executeWalkJob(options: {
     await db.$transaction(async (tx) => {
       await tx.sourceNode.deleteMany({ where: { projectId } });
       await tx.candidateWalk.deleteMany({ where: { projectId } });
+      await tx.burkeRun.deleteMany({ where: { projectId } });
       for (const node of result.visited) {
         const created = await tx.sourceNode.create({
           data: {
@@ -446,6 +494,126 @@ async function executeWalkJob(options: {
         status: "COMPLETE",
         progress: 1,
         currentStep: `Walk complete: ${result.visited.length} nodes, ${result.requestsUsed} requests, ${END_REASON_LABEL[result.endReason]}`,
+      },
+    });
+  }
+
+  async function executeBurkeWalk(): Promise<void> {
+    if (configuration.burke.seedText.trim().length === 0) {
+      throw new Error(
+        "Burke walks need a seed — a lay-intelligible object or question",
+      );
+    }
+    const bundle = gatewayFactory(
+      configuration.language,
+      configuration.maxGraphRequests,
+    );
+    const oracle = oracleFactory();
+
+    // Entry article: the configured start, except RANDOM, which for a Burke
+    // walk means "search from the seed text itself".
+    const startTitle =
+      pinnedStartTitle ??
+      (
+        await bundle.wikipedia.resolveStart(
+          configuration.start.kind === "RANDOM" ||
+            configuration.start.value.trim().length === 0
+            ? { kind: "TOPIC", value: configuration.burke.seedText }
+            : configuration.start,
+        )
+      ).title;
+
+    const result = await runBurkeWalk({
+      wikipedia: bundle.wikipedia,
+      oracle,
+      rng: createRng(configuration.seed),
+      config: {
+        seed: {
+          kind: configuration.burke.seedKind,
+          text: configuration.burke.seedText,
+        },
+        priming: configuration.burke.priming,
+        motif: configuration.burke.motif,
+        elasticityInterval: configuration.burke.elasticityInterval,
+        maxPages: configuration.burke.maxPages,
+        branchFactor: configuration.branchFactor,
+        excludeMetaPages: configuration.excludeMetaPages,
+        allowRevisits: configuration.allowRevisits,
+      },
+      startTitle,
+      onProgress: async (p) => {
+        await db.generationJob.update({
+          where: { id: jobId },
+          data: {
+            progress: p.visitedCount / p.targetLength,
+            currentStep: `${p.stage} — ${p.visitedCount}/${p.targetLength} pages: ${p.currentTitle} (${p.requestsUsed} requests)`,
+          },
+        });
+      },
+    });
+
+    if (result.visited.length === 0) {
+      await failJob("Burke walk visited no articles (start could not be visited)");
+      return;
+    }
+
+    await db.$transaction(async (tx) => {
+      await tx.sourceNode.deleteMany({ where: { projectId } });
+      await tx.candidateWalk.deleteMany({ where: { projectId } });
+      await tx.burkeRun.deleteMany({ where: { projectId } });
+      for (const node of result.visited) {
+        const created = await tx.sourceNode.create({
+          data: {
+            projectId,
+            wikipediaPageId: node.info.pageId,
+            wikidataId: node.info.wikidataId,
+            title: node.info.title,
+            url: node.info.url,
+            summary: node.info.summary,
+            categories: JSON.stringify(node.categories),
+            outgoingLinks: JSON.stringify(
+              node.judgments.map((j) => ({
+                title: j.title,
+                eligible: !j.discarded,
+                exclusionReason: j.discarded
+                  ? `discarded: ${j.rationale}`
+                  : undefined,
+                score: j.returnPotential,
+                why: [j.rationale],
+              })),
+            ),
+            visitIndex: node.visitIndex,
+          },
+        });
+        if (node.visitIndex === 0) {
+          await tx.walkProject.update({
+            where: { id: projectId },
+            data: { startNodeId: created.id },
+          });
+        }
+      }
+      await tx.burkeRun.create({
+        data: {
+          projectId,
+          salience: JSON.stringify(result.salience),
+          notes: JSON.stringify(result.notes),
+          checkpoints: JSON.stringify(result.checkpoints),
+          finalRedescription: result.finalRedescription,
+          endReason: result.endReason,
+        },
+      });
+      await tx.walkProject.update({
+        where: { id: projectId },
+        data: { status: "WALK_READY" },
+      });
+    });
+
+    await db.generationJob.update({
+      where: { id: jobId },
+      data: {
+        status: "COMPLETE",
+        progress: 1,
+        currentStep: `Burke walk complete: ${result.visited.length} pages, ${result.notes.length} notes, ${result.requestsUsed} requests — ${result.endReason.replaceAll("_", " ").toLowerCase()}`,
       },
     });
   }
@@ -520,6 +688,7 @@ async function executeWalkJob(options: {
     await db.$transaction(async (tx) => {
       await tx.candidateWalk.deleteMany({ where: { projectId } });
       await tx.sourceNode.deleteMany({ where: { projectId } });
+      await tx.burkeRun.deleteMany({ where: { projectId } });
       for (const r of results) {
         await tx.candidateWalk.create({
           data: {

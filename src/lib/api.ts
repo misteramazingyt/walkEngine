@@ -1,5 +1,6 @@
 import type { WalkProjectDto, UpdateProjectInput } from "@/server/projects";
 import type {
+  BurkeRunDto,
   CandidateWalkDto,
   GenerationJobDto,
   SourceNodeDto,
@@ -10,6 +11,7 @@ import type { WalkConfiguration } from "@/schemas/walk-configuration";
 export interface WalkDto {
   sourceNodes: SourceNodeDto[];
   candidateWalks: CandidateWalkDto[];
+  burkeRun: BurkeRunDto | null;
   latestJob: GenerationJobDto | null;
 }
 

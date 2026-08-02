@@ -200,6 +200,81 @@ describe("walk service", () => {
     expect(second).toEqual(first);
   });
 
+  it("BURKE mode persists source nodes and the Burke run (notes, salience, redescription)", async () => {
+    const { FixtureBurkeOracle } = await import(
+      "@/integrations/llm/fixture-burke-oracle"
+    );
+    const project = await createProject(
+      {
+        title: "Burke run",
+        configuration: walkConfigurationSchema.parse({
+          walkMode: "BURKE",
+          seed: "burke-svc",
+          branchFactor: 8,
+          start: { kind: "TITLE", value: "Touchstone" },
+          burke: {
+            seedKind: "OBJECT",
+            seedText: "AI slop is soulless.",
+            priming: "authenticity, mechanism, reproduction, taste",
+            motif: "",
+            elasticityInterval: 3,
+            maxPages: 7,
+          },
+        }),
+      },
+      db,
+    );
+
+    await startWalk(
+      project.id,
+      { mode: "fresh" },
+      db,
+      fixtureFactory,
+      () => new FixtureBurkeOracle({ stabilizeAfterCheckpoint: 1 }),
+    );
+    await waitForJobSettled(project.id);
+
+    const walk = await getWalk(project.id, db);
+    expect(walk.latestJob?.status).toBe("COMPLETE");
+    expect(walk.sourceNodes.length).toBeGreaterThan(1);
+    expect(walk.burkeRun).not.toBeNull();
+    expect(walk.burkeRun?.notes.length).toBe(walk.sourceNodes.length - 1);
+    expect(walk.burkeRun?.salience.length).toBeGreaterThanOrEqual(3);
+    expect(walk.burkeRun?.finalRedescription.length).toBeGreaterThan(0);
+    for (const note of walk.burkeRun?.notes ?? []) {
+      expect(note.observation).toBeTruthy();
+      expect(note.changedUnderstanding).toBeTruthy();
+      expect(note.returnToSeed).toBeTruthy();
+    }
+  });
+
+  it("BURKE mode without a seed fails loudly", async () => {
+    const { FixtureBurkeOracle } = await import(
+      "@/integrations/llm/fixture-burke-oracle"
+    );
+    const project = await createProject(
+      {
+        title: "Burke without seed",
+        configuration: walkConfigurationSchema.parse({
+          walkMode: "BURKE",
+          seed: "burke-noseed",
+        }),
+      },
+      db,
+    );
+    await startWalk(
+      project.id,
+      { mode: "fresh" },
+      db,
+      fixtureFactory,
+      () => new FixtureBurkeOracle(),
+    );
+    await waitForJobSettled(project.id);
+    const walk = await getWalk(project.id, db);
+    expect(walk.latestJob?.status).toBe("FAILED");
+    expect(walk.latestJob?.error).toMatch(/seed/i);
+  });
+
   it("marks the job FAILED when the start cannot be resolved", async () => {
     const project = await createProject(
       {

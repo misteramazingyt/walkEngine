@@ -32,6 +32,7 @@ model WalkProject {
   draftSegments  DraftSegment[]
   jobs           GenerationJob[]
   candidateWalks CandidateWalk[]
+  burkeRuns      BurkeRun[]
 }
 
 // Every visited Wikipedia page, not only nodes retained in the narrative.
@@ -145,6 +146,23 @@ model CandidateWalk {
   nodes     String // JSON: persisted EnrichedVisitedNode[]
   chosen    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+// One BurkeWalker run: the curiosity program's outputs. Notes, salience,
+// and checkpoints are stored fully so the run is reviewable without any
+// LLM call; visited pages also become SourceNodes for the flowchart.
+model BurkeRun {
+  id                 String   @id @default(cuid())
+  projectId          String
+  project            WalkProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  salience           String // JSON: SalienceWeight[]
+  notes              String // JSON: BurkeNote[]
+  checkpoints        String // JSON: ElasticityCheckpoint[]
+  finalRedescription String
+  endReason          String
+  createdAt          DateTime @default(now())
 
   @@index([projectId, createdAt])
 }

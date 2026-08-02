@@ -18,8 +18,29 @@ analogical, and speculative transitions.
 
 ## Status
 
-**Phases 1–3 complete: shell + deterministic random walk + criteriological
-walk.**
+**Phases 1–3.5 complete: shell + deterministic random walk +
+criteriological walk + BurkeWalker (Gemini-powered).**
+
+New in Phase 3.5:
+
+- **Burke walker mode** — the walker carries a *curiosity program*: a seed
+  (your lived object or question), a natural-language priming that the LLM
+  converts into a salience field, and a six-question grammar
+  (precondition / problem / selection / transformation / analogy /
+  recoding). Candidates are judged on six move criteria; pages with no
+  *return potential* to the seed are discarded. Every step writes a
+  four-field note; every N pages a three-sentence story checkpoint tests
+  narrative elasticity. The walk stops on redescription or explanatory
+  saturation — the page cap is only a safety net. The right panel becomes
+  the walker's journal
+- **Motif modules** (Authenticity under Mechanization; Authority) —
+  reusable ways of becoming curious, not topics
+- **Gemini provider** (`GEMINI_API_KEY`, optional `GEMINI_MODEL`, default
+  gemini-2.5-flash): the first live implementation of the provider
+  interface. Structured outputs are Zod-validated; invalid output is
+  retried once with the validation errors, then fails visibly with the raw
+  response preserved. Without the key, Burke walks fail loudly — nothing is
+  invented
 
 New in Phase 3:
 
