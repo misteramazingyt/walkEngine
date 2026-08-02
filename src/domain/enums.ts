@@ -7,6 +7,7 @@ export const WALK_MODES = [
   "CRITERIOLOGICAL",
   "BURKE",
   "ANAMNETIC",
+  "BURKECLUSTER",
 ] as const;
 export type WalkMode = (typeof WALK_MODES)[number];
 
@@ -15,6 +16,7 @@ export const WALK_MODE_LABELS: Record<WalkMode, string> = {
   CRITERIOLOGICAL: "Criteriological",
   BURKE: "Burke — unresolved-question traversal",
   ANAMNETIC: "Anamnetic — start from a felt ending",
+  BURKECLUSTER: "BurkeCluster — discover narrative subjects",
 };
 
 /** The register a terminal sentence is meant to land in. */

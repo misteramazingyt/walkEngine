@@ -23,6 +23,15 @@ import {
   createAnamnesisOracle,
   createBurkeOracle,
 } from "@/server/oracle-factory";
+import { runBurkeClusterWalk } from "@/domain/burkecluster/engine";
+import type {
+  BurkeClusterNarrative,
+  BurkeClusterOracle,
+  BurkeClusterResult,
+  BurkeClusterState,
+} from "@/domain/burkecluster/types";
+import type { ArchiveEdge, ArchiveNode } from "@/domain/graph/types";
+import { createBurkeClusterOracle } from "@/server/burkecluster-oracle-factory";
 import {
   runCriteriologicalWalk,
   type EnrichedVisitedNode,
@@ -92,6 +101,18 @@ export interface AnamnesisRunDto {
   recollectionTests: RecollectionTest[];
   composition: AnamnesisComposition | null;
   abandonedRoutes: Array<{ title: string; reason: string }>;
+  endReason: string;
+  createdAt: string;
+}
+
+export interface BurkeClusterRunDto {
+  id: string;
+  randomSeed: string;
+  state: BurkeClusterState;
+  narrative: BurkeClusterNarrative | null;
+  transitionTable: BurkeClusterResult["transitionTable"];
+  graphNodes: ArchiveNode[];
+  graphEdges: ArchiveEdge[];
   endReason: string;
   createdAt: string;
 }
@@ -175,7 +196,8 @@ function jobToDto(row: {
 }
 
 export async function getWalk(projectId: string, db: PrismaClient = prisma) {
-  const [nodes, candidates, latestJob, burkeRun, anamnesisRun] = await Promise.all([
+  const [nodes, candidates, latestJob, burkeRun, anamnesisRun, clusterRun] =
+    await Promise.all([
     db.sourceNode.findMany({
       where: { projectId },
       orderBy: { visitIndex: "asc" },
@@ -193,6 +215,10 @@ export async function getWalk(projectId: string, db: PrismaClient = prisma) {
       orderBy: { createdAt: "desc" },
     }),
     db.anamnesisRun.findFirst({
+      where: { projectId },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.burkeClusterRun.findFirst({
       where: { projectId },
       orderBy: { createdAt: "desc" },
     }),
@@ -268,11 +294,30 @@ export async function getWalk(projectId: string, db: PrismaClient = prisma) {
       }
     : null;
 
+  const cluster: BurkeClusterRunDto | null = clusterRun
+    ? {
+        id: clusterRun.id,
+        randomSeed: clusterRun.randomSeed,
+        state: JSON.parse(clusterRun.state) as BurkeClusterState,
+        narrative: clusterRun.narrative
+          ? (JSON.parse(clusterRun.narrative) as BurkeClusterNarrative)
+          : null,
+        transitionTable: JSON.parse(
+          clusterRun.transitionTable,
+        ) as BurkeClusterResult["transitionTable"],
+        graphNodes: JSON.parse(clusterRun.graphNodes) as ArchiveNode[],
+        graphEdges: JSON.parse(clusterRun.graphEdges) as ArchiveEdge[],
+        endReason: clusterRun.endReason,
+        createdAt: clusterRun.createdAt.toISOString(),
+      }
+    : null;
+
   return {
     sourceNodes,
     candidateWalks,
     burkeRun: burke,
     anamnesisRun: anamnesis,
+    clusterRun: cluster,
     latestJob: latestJob ? jobToDto(latestJob) : null,
   };
 }
@@ -284,6 +329,7 @@ export async function startWalk(
   gatewayFactory: (language: string, budget: number) => GatewayBundle = createGatewayBundle,
   oracleFactory: () => BurkeOracle = createBurkeOracle,
   anamnesisOracleFactory: () => AnamnesisOracle = createAnamnesisOracle,
+  clusterOracleFactory: () => BurkeClusterOracle = createBurkeClusterOracle,
 ): Promise<
   | { ok: true; job: GenerationJobDto }
   | { ok: false; status: number; error: string }
@@ -345,6 +391,7 @@ export async function startWalk(
     gatewayFactory,
     oracleFactory,
     anamnesisOracleFactory,
+    clusterOracleFactory,
     projectId,
     jobId: job.id,
     configuration,
@@ -434,6 +481,7 @@ async function executeWalkJob(options: {
   gatewayFactory: (language: string, budget: number) => GatewayBundle;
   oracleFactory: () => BurkeOracle;
   anamnesisOracleFactory: () => AnamnesisOracle;
+  clusterOracleFactory: () => BurkeClusterOracle;
   projectId: string;
   jobId: string;
   configuration: ReturnType<typeof walkConfigurationSchema.parse>;
@@ -444,6 +492,7 @@ async function executeWalkJob(options: {
     gatewayFactory,
     oracleFactory,
     anamnesisOracleFactory,
+    clusterOracleFactory,
     projectId,
     jobId,
     configuration,
@@ -486,6 +535,9 @@ async function executeWalkJob(options: {
         break;
       case "ANAMNETIC":
         await executeAnamnesisWalk();
+        break;
+      case "BURKECLUSTER":
+        await executeBurkeClusterWalk();
         break;
     }
   } catch (error) {
@@ -857,6 +909,143 @@ async function executeWalkJob(options: {
         status: "COMPLETE",
         progress: 1,
         currentStep: `Anamnetic walk complete: ${result.mediations.length} mediations, ${unpaid} debts outstanding, ${result.requestsUsed} requests — ${result.endReason.replaceAll("_", " ").toLowerCase()}`,
+      },
+    });
+  }
+
+  async function executeBurkeClusterWalk(): Promise<void> {
+    const seedText = configuration.burkeCluster.seedText.trim();
+    if (seedText.length === 0) {
+      throw new Error(
+        "BurkeCluster needs a seed — the object, question, or proposition the route culminates in",
+      );
+    }
+    const bundle = gatewayFactory(
+      configuration.language,
+      configuration.maxGraphRequests,
+    );
+    const oracle = clusterOracleFactory();
+    const bc = configuration.burkeCluster;
+
+    const result = await runBurkeClusterWalk({
+      wikipedia: bundle.wikipedia,
+      entityFacts: bundle.entityFacts,
+      oracle,
+      rng: createRng(configuration.seed),
+      config: {
+        rawSeed: seedText,
+        attentionText: bc.attentionProgram,
+        minimumSubjectCount: bc.minimumSubjectCount,
+        maxSubjectDepth: bc.maxSubjectDepth,
+        episodesPerCycle: bc.episodesPerCycle,
+        hopsPerEpisode: bc.hopsPerEpisode,
+        restartProbability: bc.restartProbability,
+        maxNodesPerCycle: bc.maxNodesPerCycle,
+        maxEdgesPerCycle: bc.maxEdgesPerCycle,
+        secondOrderFanout: bc.secondOrderFanout,
+        sharedNeighborThreshold: bc.sharedNeighborThreshold,
+        minArticleLength: configuration.minArticleLength,
+        excludeMetaPages: configuration.excludeMetaPages,
+        minClusterSize: bc.minClusterSize,
+        analogyTolerance: bc.analogyTolerance,
+        endpointRigidity: bc.endpointRigidity,
+        requireConcreteAnchor: bc.requireConcreteAnchor,
+        maxClusterCycles: bc.maxClusterCycles,
+        maxModelCalls: bc.maxModelCalls,
+      },
+      onProgress: async (p) => {
+        await db.generationJob.update({
+          where: { id: jobId },
+          data: {
+            progress: Math.min(1, p.completed / Math.max(1, p.target)),
+            currentStep: `${p.stage} — ${p.completed}/${p.target} subjects (${p.requestsUsed} requests)`,
+          },
+        });
+      },
+    });
+
+    if (result.state.acceptedClusters.length === 0) {
+      await failJob(
+        `BurkeCluster accepted no subject clusters (${result.endReason.replaceAll("_", " ").toLowerCase()})`,
+      );
+      return;
+    }
+
+    await db.$transaction(async (tx) => {
+      await tx.sourceNode.deleteMany({ where: { projectId } });
+      await tx.candidateWalk.deleteMany({ where: { projectId } });
+      await tx.burkeRun.deleteMany({ where: { projectId } });
+      await tx.anamnesisRun.deleteMany({ where: { projectId } });
+      await tx.burkeClusterRun.deleteMany({ where: { projectId } });
+
+      // The flowchart shows the accepted subject sequence, not the whole
+      // sampled archive — hundreds of pages may be inspected while only a
+      // handful become subjects.
+      const sequence = [
+        ...result.state.acceptedClusters.map((c) => ({
+          title: c.subject.centralPageTitle ?? c.subject.label,
+          summary: c.narration?.account ?? c.subject.label,
+          cluster: c,
+        })),
+      ];
+      for (let i = 0; i < sequence.length; i++) {
+        const entry = sequence[i];
+        const node = result.finalNodes.find((n) => n.title === entry.title);
+        const created = await tx.sourceNode.create({
+          data: {
+            projectId,
+            wikipediaPageId: -1,
+            wikidataId: node?.wikidataId,
+            title: entry.title,
+            url: node?.url ?? "",
+            summary: entry.summary.slice(0, 1200),
+            categories: JSON.stringify(entry.cluster.subject.constitutivePages),
+            entityTypes: JSON.stringify([entry.cluster.subject.type]),
+            rawWalkScore: entry.cluster.stability,
+            outgoingLinks: JSON.stringify(
+              entry.cluster.packet.representativeTitles.map((title) => ({
+                title,
+                eligible: true,
+                why: [`member of ${entry.cluster.clusterId}`],
+              })),
+            ),
+            visitIndex: i,
+          },
+        });
+        if (i === 0) {
+          await tx.walkProject.update({
+            where: { id: projectId },
+            data: { startNodeId: created.id },
+          });
+        }
+      }
+
+      await tx.burkeClusterRun.create({
+        data: {
+          projectId,
+          schemaVersion: RUN_SCHEMA_VERSION,
+          randomSeed: configuration.seed,
+          state: JSON.stringify(result.state),
+          narrative: result.narrative ? JSON.stringify(result.narrative) : null,
+          transitionTable: JSON.stringify(result.transitionTable),
+          graphNodes: JSON.stringify(result.finalNodes.slice(0, 300)),
+          graphEdges: JSON.stringify(result.finalEdges.slice(0, 2000)),
+          endReason: result.endReason,
+        },
+      });
+      await tx.walkProject.update({
+        where: { id: projectId },
+        data: { status: "WALK_READY" },
+      });
+    });
+
+    const budget = result.state.budget;
+    await db.generationJob.update({
+      where: { id: jobId },
+      data: {
+        status: "COMPLETE",
+        progress: 1,
+        currentStep: `BurkeCluster complete: ${result.state.acceptedClusters.length} subjects from ${budget.sampledPages} sampled pages across ${budget.clusterCycles} cycles (${budget.modelCalls} model calls, ${result.requestsUsed} requests) — ${result.endReason.replaceAll("_", " ").toLowerCase()}`,
       },
     });
   }

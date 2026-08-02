@@ -146,6 +146,52 @@ export const walkConfigurationSchema = z.object({
       requireConcreteAnchors: true,
       sentimentalityTolerance: 0.2,
     }),
+
+  // BurkeCluster: stochastic subject discovery. The seed is the provisional
+  // ENDING; the walk samples outward and discovers subject-regions backward.
+  burkeCluster: z
+    .object({
+      seedText: z.string().default(""),
+      attentionProgram: z.string().default(""),
+      minimumSubjectCount: z.number().int().min(1).max(8).default(3),
+      maxSubjectDepth: z.number().int().min(1).max(10).default(4),
+      // Sampling
+      episodesPerCycle: z.number().int().min(2).max(40).default(10),
+      hopsPerEpisode: z.number().int().min(1).max(12).default(4),
+      restartProbability: z.number().min(0).max(0.9).default(0.15),
+      maxNodesPerCycle: z.number().int().min(20).max(400).default(120),
+      maxEdgesPerCycle: z.number().int().min(50).max(6000).default(1500),
+      secondOrderFanout: z.number().int().min(0).max(40).default(14),
+      sharedNeighborThreshold: z.number().int().min(1).max(6).default(2),
+      minClusterSize: z.number().int().min(2).max(12).default(3),
+      // Judgment
+      analogyTolerance: z.number().min(0).max(1).default(0.25),
+      /** How firmly the seed stays the ending; 1 = never revisable. */
+      endpointRigidity: z.number().min(0).max(1).default(0.9),
+      requireConcreteAnchor: z.boolean().default(true),
+      // Budgets — exhaustion is reported distinctly from completion.
+      maxClusterCycles: z.number().int().min(1).max(20).default(8),
+      maxModelCalls: z.number().int().min(5).max(120).default(45),
+    })
+    .default({
+      seedText: "",
+      attentionProgram: "",
+      minimumSubjectCount: 3,
+      maxSubjectDepth: 4,
+      episodesPerCycle: 10,
+      hopsPerEpisode: 4,
+      restartProbability: 0.15,
+      maxNodesPerCycle: 120,
+      maxEdgesPerCycle: 1500,
+      secondOrderFanout: 14,
+      sharedNeighborThreshold: 2,
+      minClusterSize: 3,
+      analogyTolerance: 0.25,
+      endpointRigidity: 0.9,
+      requireConcreteAnchor: true,
+      maxClusterCycles: 8,
+      maxModelCalls: 45,
+    }),
 });
 
 export type WalkConfiguration = z.infer<typeof walkConfigurationSchema>;

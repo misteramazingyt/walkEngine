@@ -34,6 +34,7 @@ model WalkProject {
   candidateWalks CandidateWalk[]
   burkeRuns      BurkeRun[]
   anamnesisRuns  AnamnesisRun[]
+  clusterRuns    BurkeClusterRun[]
 }
 
 // Every visited Wikipedia page, not only nodes retained in the narrative.
@@ -187,6 +188,27 @@ model AnamnesisRun {
   abandonedRoutes   String   @default("[]") // JSON: {title, reason}[]
   endReason         String
   createdAt         DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+// One BurkeCluster run: the sampled archive, the cluster cycles, the
+// accepted subject sequence with its incipit-subjectum pivots, and the
+// composed narrative. Stored fully so the route is inspectable and
+// reproducible without any model call.
+model BurkeClusterRun {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         WalkProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  schemaVersion   Int      @default(1)
+  randomSeed      String
+  state           String // JSON: BurkeClusterState (seed, attention, subjects, cycles)
+  narrative       String? // JSON: BurkeClusterNarrative
+  transitionTable String   @default("[]") // JSON: the required transition table
+  graphNodes      String   @default("[]") // JSON: ArchiveNode[] of the final cycle
+  graphEdges      String   @default("[]") // JSON: ArchiveEdge[] of the final cycle
+  endReason       String
+  createdAt       DateTime @default(now())
 
   @@index([projectId, createdAt])
 }

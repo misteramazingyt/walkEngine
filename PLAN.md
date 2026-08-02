@@ -288,6 +288,76 @@ called R1/R2/R4):
 Not done here (belongs with BurkeCluster): the graph refactor (R3). Anamnesis
 is a path mode and does not need it.
 
+### Phase 3.8 — BurkeCluster  ✅ (user-requested)
+
+A fifth walk strategy. Where Burke chooses the next PAGE by explanatory
+deficiency and anamnesis pays a sentence's DEBTS, BurkeCluster discovers the
+next historical SUBJECT-REGION — but still pivots by deficiency:
+
+> narration → predicate → deficiency → conditioned stochastic exploration
+> → cluster → subject → incipit subjectum → renewed narration
+
+Not implemented as cluster adjacency followed by retrospective bridge-writing.
+The deficiency is generated from the current subject's own narration and
+selected **before** any sampling; a cluster may never be chosen first and its
+justification invented afterwards (asserted by test).
+
+- [x] **Graph layer** (`src/domain/graph/`): `ArchiveNode`/`ArchiveEdge` with
+      relation type and provenance kept distinct (never flattened);
+      stochastic walk episodes across a policy mixture (novelty-biased,
+      personalized-PageRank, non-backtracking, attention-biased, surprise
+      jump); two-level expansion with **shared-neighbour pruning** — an L2
+      node is retained only if it co-links ≥2 L1 nodes, so clusters form by
+      outlink neighbourhood rather than lexical similarity; reciprocity
+      promotion; Wikidata enrichment
+- [x] **Metrics**: hand-rolled personalized PageRank (power iteration,
+      restart on the current subject region) and Brandes betweenness, plus a
+      **degree-percentile hub score**. `isGenuineBridge` requires
+      betweenness AND low hubness AND boundary-spanning — this is what keeps
+      "Society" from being mistaken for a bridge
+- [x] **Multi-resolution Louvain** (0.7/1.0/1.4) chosen by a composite of
+      modularity, conductance, cross-resolution partition stability, and
+      cluster-count sanity; deterministic rng so runs reproduce
+- [x] **Cluster packets**: relevance/centrality/bridges, entity types,
+      periods, places, dominant relations, anomalies, **complementarity**
+      (type diversity, mechanism/example balance, temporal structure, minus
+      redundancy and list-page dominance) and **audience intelligibility**
+      from archival signals — concrete Wikidata types, dates, coordinates,
+      sitelink breadth — rather than readability scores
+- [x] **Deficiency-governed loop**: narrate → extract predicates → generate
+      3–7 deficiencies from those predicates → rank and select one →
+      deficiency-conditioned sampling → cluster → interpret as subjects →
+      incipit subjectum → validate
+- [x] **Pivot validation**: rejects a pivot citing a predicate the narration
+      never used, one that cannot state *why the subject was latent*, one
+      whose bridge merely asserts relatedness, one resting on weak evidence
+      at low confidence, and one with no concrete anchor
+- [x] Three scoring modules with the brief's weights (cluster, subject,
+      deficiency); totals computed in-engine, advisory to the LLM
+- [x] Reverse composition: discovery, dependency, and presentation orders
+      stored separately; wrap-around introduction that itself performs an
+      incipit-subjectum move; culmination gathers the predicates
+- [x] Persistence with `schemaVersion` and the random seed; UI with subject
+      route, **transition table** (from / predicate / deficiency / to / why
+      latent / confidence), Cluster Atlas, Discovery Trace, rejected
+      clusters and subjects, epistemic ledger, and budget usage
+
+Dependencies added: `graphology` + `graphology-communities-louvain`.
+Justification: the brief's Python options (networkx, igraph, leidenalg)
+cannot run in this single-container Node deployment, and a Python sidecar
+for one algorithm would break the Dockerfile and migration entrypoint.
+**Leiden has no maintained pure-JS implementation**; Louvain's
+badly-connected-community defect is mitigated by the resolution sweep,
+stability scoring, and minimum-size filters. Personalized PageRank and
+betweenness are hand-rolled (~100 lines) rather than adding a third package.
+
+Deferred, and honestly so: page-section and named-entity nodes (pages-only
+for v1); inlinks (`prop=linkshere` unimplemented); cluster stabilization by
+resampling the *same* region (stability is currently measured across
+resolutions, not across resamples); endpoint revision is modelled and
+scored but has no compare-drafts UI; the alternate-cluster / recluster /
+lock / compare-routes actions are not built.
+
 ### Phase 4 — significance orchestration
 
 - Candidate-node dossiers (fetched facts / inferred metadata / LLM

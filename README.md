@@ -51,6 +51,23 @@ New in Phase 3.5:
   — what lands, what still falls flat — and the walk ends when it becomes
   *inhabitable*, not when pages run out. The composition is then ordered for
   preparation rather than discovery and closes on your sentence verbatim
+- **BurkeCluster mode** — discovers narrative *subjects* rather than pages.
+  Your seed is the provisional **ending**; the walker samples the archive
+  outward with a mixture of stochastic walk policies, builds a local graph
+  (outlinks, shared neighbours, reciprocity, Wikidata relations, each kept
+  with its provenance), and detects concentrations with multi-resolution
+  Louvain plus personalized PageRank and betweenness. It then asks what
+  historical subject *organizes* each concentration — preferring "carnival"
+  to "collective behavior", "the office of the herald" to "authority".
+  Crucially the route is still governed by deficiency: each accepted subject
+  is narrated, its predicates extracted, and the predicate it leaves
+  unexplained selects the next search **before** any sampling happens. The
+  next subject is that predicate raised into a subject of its own —
+  *incipit subjectum* — and a pivot that cannot say why its subject was
+  latent in the previous narration is rejected. The narrative is composed in
+  reverse discovery order, opening on an ordinary scene and culminating in
+  your seed; the Cluster Atlas, Discovery Trace, and transition table keep
+  the computation inspectable beside it
 - **Motif modules** (Authenticity under Mechanization; Authority) —
   reusable ways of becoming curious, not topics
 - **Gemini provider** (`GEMINI_API_KEY`, optional `GEMINI_MODEL`, default

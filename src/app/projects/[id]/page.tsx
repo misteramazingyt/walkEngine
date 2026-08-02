@@ -16,6 +16,7 @@ import { WalkConfigurationForm } from "@/components/configuration/WalkConfigurat
 import { FlowchartCanvas } from "@/components/flowchart/FlowchartCanvas";
 import { DraftPanel } from "@/components/draft/DraftPanel";
 import { AnamnesisPanel } from "@/components/draft/AnamnesisPanel";
+import { BurkeClusterPanel } from "@/components/draft/BurkeClusterPanel";
 import { InspectorPanel } from "@/components/inspector/InspectorPanel";
 import { Panel, TitleBar } from "@/components/ui/retro";
 
@@ -220,15 +221,19 @@ export default function ProjectWorkbenchPage({
         </Panel>
         <Panel
           title={
-            walkQuery.data?.anamnesisRun
-              ? "Anamnesis — the sentence and what it owes"
-              : walkQuery.data?.burkeRun
-                ? "Burke walker — story state"
-                : "Draft 0"
+            walkQuery.data?.clusterRun
+              ? "BurkeCluster — subjects, clusters, trace"
+              : walkQuery.data?.anamnesisRun
+                ? "Anamnesis — the sentence and what it owes"
+                : walkQuery.data?.burkeRun
+                  ? "Burke walker — story state"
+                  : "Draft 0"
           }
           className="h-[50vh] min-w-0 shrink-0 lg:h-auto lg:min-h-0 lg:flex-[2] lg:shrink"
         >
-          {walkQuery.data?.anamnesisRun ? (
+          {walkQuery.data?.clusterRun ? (
+            <BurkeClusterPanel run={walkQuery.data.clusterRun} />
+          ) : walkQuery.data?.anamnesisRun ? (
             <AnamnesisPanel run={walkQuery.data.anamnesisRun} />
           ) : (
             <DraftPanel burkeRun={walkQuery.data?.burkeRun ?? null} />

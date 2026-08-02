@@ -71,6 +71,12 @@ export function WalkConfigurationForm({
     v: WalkConfiguration["anamnesis"][K],
   ) => set("anamnesis", { ...value.anamnesis, [key]: v });
 
+  const clustered = value.walkMode === "BURKECLUSTER";
+  const setCluster = <K extends keyof WalkConfiguration["burkeCluster"]>(
+    key: K,
+    v: WalkConfiguration["burkeCluster"][K],
+  ) => set("burkeCluster", { ...value.burkeCluster, [key]: v });
+
   return (
     <div className="flex flex-col gap-2 p-2">
       <div className="flex flex-wrap items-start gap-2">
@@ -87,6 +93,9 @@ export function WalkConfigurationForm({
               <option value="CRITERIOLOGICAL">Criteriological</option>
               <option value="BURKE">Burke — unresolved question</option>
               <option value="ANAMNETIC">Anamnetic — from a felt ending</option>
+              <option value="BURKECLUSTER">
+                BurkeCluster — discover narrative subjects
+              </option>
             </RetroSelect>
           </FieldRow>
           <FieldRow label="Sampling" htmlFor="sampling-mode">
@@ -582,6 +591,246 @@ export function WalkConfigurationForm({
                 />
                 <span className="w-8 text-[11px] text-ink-dim">
                   {value.anamnesis.sentimentalityTolerance.toFixed(2)}
+                </span>
+              </label>
+            </div>
+          </GroupBox>
+        )}
+
+        {clustered && (
+          <GroupBox
+            legend="BurkeCluster — stochastic subject discovery"
+            className="min-w-0 flex-1 sm:min-w-96"
+          >
+            <div>
+              <label
+                htmlFor="bc-seed"
+                className="mb-1 block text-[12px] font-bold"
+              >
+                Seed — the object, question, or proposition the route ends in
+              </label>
+              <RetroTextarea
+                id="bc-seed"
+                rows={2}
+                className="w-full"
+                value={value.burkeCluster.seedText}
+                placeholder="e.g. LARP is a social strategy for undermining individual cunning."
+                onChange={(e) => setCluster("seedText", e.target.value)}
+              />
+            </div>
+            <div className="mt-1">
+              <label
+                htmlFor="bc-attention"
+                className="mb-1 block text-[12px] font-bold"
+              >
+                Attention program (a field of salience, not a thesis)
+              </label>
+              <RetroTextarea
+                id="bc-attention"
+                rows={3}
+                className="w-full"
+                value={value.burkeCluster.attentionProgram}
+                placeholder="Attend especially to long-standing practices in which publics expose, name, dramatize, ritualize, or absorb individual maneuver into collectively maintained roles and frames…"
+                onChange={(e) => setCluster("attentionProgram", e.target.value)}
+              />
+            </div>
+            <div className="mt-1 grid grid-cols-1 gap-x-4 sm:grid-cols-3">
+              <FieldRow label="Minimum subjects" htmlFor="bc-min-subjects">
+                <RetroInput
+                  id="bc-min-subjects"
+                  type="number"
+                  min={1}
+                  max={8}
+                  className="w-16"
+                  title="Accepted subject clusters required before the route may end"
+                  value={value.burkeCluster.minimumSubjectCount}
+                  onChange={(e) =>
+                    setCluster("minimumSubjectCount", Number(e.target.value))
+                  }
+                />
+              </FieldRow>
+              <FieldRow label="Max subject depth" htmlFor="bc-depth">
+                <RetroInput
+                  id="bc-depth"
+                  type="number"
+                  min={1}
+                  max={10}
+                  className="w-16"
+                  value={value.burkeCluster.maxSubjectDepth}
+                  onChange={(e) =>
+                    setCluster("maxSubjectDepth", Number(e.target.value))
+                  }
+                />
+              </FieldRow>
+              <FieldRow label="Episodes / cycle" htmlFor="bc-episodes">
+                <RetroInput
+                  id="bc-episodes"
+                  type="number"
+                  min={2}
+                  max={40}
+                  className="w-16"
+                  title="Stochastic walk episodes per sampling cycle"
+                  value={value.burkeCluster.episodesPerCycle}
+                  onChange={(e) =>
+                    setCluster("episodesPerCycle", Number(e.target.value))
+                  }
+                />
+              </FieldRow>
+              <FieldRow label="Hops / episode" htmlFor="bc-hops">
+                <RetroInput
+                  id="bc-hops"
+                  type="number"
+                  min={1}
+                  max={12}
+                  className="w-16"
+                  value={value.burkeCluster.hopsPerEpisode}
+                  onChange={(e) =>
+                    setCluster("hopsPerEpisode", Number(e.target.value))
+                  }
+                />
+              </FieldRow>
+              <FieldRow label="Max pages / cycle" htmlFor="bc-nodes">
+                <RetroInput
+                  id="bc-nodes"
+                  type="number"
+                  min={20}
+                  max={400}
+                  className="w-20"
+                  title="Budget: sampled pages per cluster cycle"
+                  value={value.burkeCluster.maxNodesPerCycle}
+                  onChange={(e) =>
+                    setCluster("maxNodesPerCycle", Number(e.target.value))
+                  }
+                />
+              </FieldRow>
+              <FieldRow label="Max model calls" htmlFor="bc-calls">
+                <RetroInput
+                  id="bc-calls"
+                  type="number"
+                  min={5}
+                  max={120}
+                  className="w-20"
+                  title="Budget exhaustion is reported distinctly from completion"
+                  value={value.burkeCluster.maxModelCalls}
+                  onChange={(e) =>
+                    setCluster("maxModelCalls", Number(e.target.value))
+                  }
+                />
+              </FieldRow>
+              <FieldRow label="Min cluster size" htmlFor="bc-min-cluster">
+                <RetroInput
+                  id="bc-min-cluster"
+                  type="number"
+                  min={2}
+                  max={12}
+                  className="w-16"
+                  value={value.burkeCluster.minClusterSize}
+                  onChange={(e) =>
+                    setCluster("minClusterSize", Number(e.target.value))
+                  }
+                />
+              </FieldRow>
+              <FieldRow label="2nd-order fanout" htmlFor="bc-fanout">
+                <RetroInput
+                  id="bc-fanout"
+                  type="number"
+                  min={0}
+                  max={40}
+                  className="w-16"
+                  title="How many level-1 pages get their outlinks expanded"
+                  value={value.burkeCluster.secondOrderFanout}
+                  onChange={(e) =>
+                    setCluster("secondOrderFanout", Number(e.target.value))
+                  }
+                />
+              </FieldRow>
+              <FieldRow label="Max cycles" htmlFor="bc-cycles">
+                <RetroInput
+                  id="bc-cycles"
+                  type="number"
+                  min={1}
+                  max={20}
+                  className="w-16"
+                  value={value.burkeCluster.maxClusterCycles}
+                  onChange={(e) =>
+                    setCluster("maxClusterCycles", Number(e.target.value))
+                  }
+                />
+              </FieldRow>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <RetroCheckbox
+                label="Require concrete anchor"
+                title="Every accepted subject must offer something a twelve-year-old can picture"
+                checked={value.burkeCluster.requireConcreteAnchor}
+                onChange={(e) =>
+                  setCluster("requireConcreteAnchor", e.target.checked)
+                }
+              />
+              <label
+                htmlFor="bc-restart"
+                className="flex items-center gap-2 text-[12px]"
+                title="Probability a walk episode restarts at the origin region"
+              >
+                Restart probability
+                <input
+                  id="bc-restart"
+                  type="range"
+                  min={0}
+                  max={0.9}
+                  step={0.05}
+                  className="w-24 accent-(--color-accent)"
+                  value={value.burkeCluster.restartProbability}
+                  onChange={(e) =>
+                    setCluster("restartProbability", Number(e.target.value))
+                  }
+                />
+                <span className="w-8 text-[11px] text-ink-dim">
+                  {value.burkeCluster.restartProbability.toFixed(2)}
+                </span>
+              </label>
+              <label
+                htmlFor="bc-analogy"
+                className="flex items-center gap-2 text-[12px]"
+                title="Low: documented dependencies only. High: morphological pivots allowed, clearly labeled."
+              >
+                Analogy tolerance
+                <input
+                  id="bc-analogy"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  className="w-24 accent-(--color-accent)"
+                  value={value.burkeCluster.analogyTolerance}
+                  onChange={(e) =>
+                    setCluster("analogyTolerance", Number(e.target.value))
+                  }
+                />
+                <span className="w-8 text-[11px] text-ink-dim">
+                  {value.burkeCluster.analogyTolerance.toFixed(2)}
+                </span>
+              </label>
+              <label
+                htmlFor="bc-rigidity"
+                className="flex items-center gap-2 text-[12px]"
+                title="How firmly the seed remains the ending. Endpoint revision is never silent."
+              >
+                Endpoint rigidity
+                <input
+                  id="bc-rigidity"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  className="w-24 accent-(--color-accent)"
+                  value={value.burkeCluster.endpointRigidity}
+                  onChange={(e) =>
+                    setCluster("endpointRigidity", Number(e.target.value))
+                  }
+                />
+                <span className="w-8 text-[11px] text-ink-dim">
+                  {value.burkeCluster.endpointRigidity.toFixed(2)}
                 </span>
               </label>
             </div>
