@@ -323,6 +323,109 @@ describe("walk service", () => {
     expect(sourceNodes[0].title).toBe("Coinage");
   });
 
+  it("searches the seed and its attention program as separate queries", async () => {
+    // A seed concatenated with its attention program is one long conjunctive
+    // query that matches nothing: "the meaning of life" finds pages, and the
+    // same words trailed by a sentence about average individuals finds none.
+    const queries: string[] = [];
+    const spyingFactory = (language: string, budgetLimit: number) => {
+      const bundle = fixtureFactory(language, budgetLimit);
+      const gateway = bundle.wikipedia;
+      const search = gateway.searchTitles!.bind(gateway);
+      gateway.searchTitles = async (phrase: string, limit: number) => {
+        queries.push(phrase);
+        return search(phrase, limit);
+      };
+      return bundle;
+    };
+
+    const project = await createProject(
+      {
+        title: "Long attention program",
+        configuration: walkConfigurationSchema.parse({
+          seed: "llm-start-phrases",
+          walkLength: 3,
+          walkMode: "RANDOM",
+          pathDescription:
+            "coinage. pay special attention to accounts of average individuals and the meaning they have given their lives over millennia and the means by which that meaning was given",
+          start: { kind: "LLM", value: "" },
+        }),
+      },
+      db,
+    );
+
+    await startWalk(
+      project.id,
+      { mode: "fresh" },
+      db,
+      spyingFactory,
+      undefined,
+      undefined,
+      undefined,
+      () => new FixtureStartOracle(),
+    );
+    await waitForJobSettled(project.id);
+
+    expect(queries.length).toBeGreaterThan(0);
+    // No query carries the whole blob, and none is longer than search can use.
+    for (const query of queries) {
+      expect(query.split(/\s+/).length).toBeLessThanOrEqual(12);
+    }
+    const { latestJob } = await getWalk(project.id, db);
+    expect(latestJob?.status).toBe("COMPLETE");
+  });
+
+  it("searches a cluster seed on its own, apart from its attention program", async () => {
+    const queries: string[] = [];
+    const spyingFactory = (language: string, budgetLimit: number) => {
+      const bundle = fixtureFactory(language, budgetLimit);
+      const gateway = bundle.wikipedia;
+      const search = gateway.searchTitles!.bind(gateway);
+      gateway.searchTitles = async (phrase: string, limit: number) => {
+        queries.push(phrase);
+        return search(phrase, limit);
+      };
+      return bundle;
+    };
+
+    const project = await createProject(
+      {
+        title: "Cluster seed queries",
+        configuration: walkConfigurationSchema.parse({
+          seed: "llm-start-cluster",
+          walkMode: "BURKECLUSTER",
+          start: { kind: "LLM", value: "" },
+          burkeCluster: {
+            seedText: "the meaning of life",
+            attentionProgram:
+              "pay special attention to accounts of average individuals and the meaning they have given their lives over millennia and/or the means by which that meaning was given",
+          },
+        }),
+      },
+      db,
+    );
+
+    await startWalk(
+      project.id,
+      { mode: "fresh" },
+      db,
+      spyingFactory,
+      undefined,
+      undefined,
+      undefined,
+      () => new FixtureStartOracle(),
+    );
+    await waitForJobSettled(project.id);
+
+    // The seed reaches search as itself, not welded to the attention program.
+    expect(queries).toContain("the meaning of life");
+    // The fixture graph holds no such page, so this run fails — but it fails
+    // naming the queries it sent rather than a phrase it never searched for.
+    const { latestJob } = await getWalk(project.id, db);
+    expect(latestJob?.status).toBe("FAILED");
+    expect(latestJob?.error).toContain('"the meaning of life"');
+  });
+
   it("refuses a start the oracle named that was not among the candidates", async () => {
     const project = await createProject(
       {

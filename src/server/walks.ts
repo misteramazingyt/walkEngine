@@ -558,28 +558,59 @@ async function executeWalkJob(options: {
    * LLM-determined start reasons from, so each mode contributes the text
    * that actually states what the walk is for — not its numeric parameters.
    */
-  function modeSeedInfo(): string {
-    const parts: string[] = [];
+  function modeSeedMaterial(): { statement: string; field: string } {
     switch (configuration.walkMode) {
       case "BURKE":
-        parts.push(configuration.burke.seedText, configuration.burke.priming);
-        break;
+        return {
+          statement: configuration.burke.seedText,
+          field: configuration.burke.priming,
+        };
       case "ANAMNETIC":
-        parts.push(
-          configuration.anamnesis.terminalSentence,
-          configuration.anamnesis.intent,
-        );
-        break;
+        return {
+          statement: configuration.anamnesis.terminalSentence,
+          field: configuration.anamnesis.intent,
+        };
       case "BURKECLUSTER":
-        parts.push(
-          configuration.burkeCluster.seedText,
-          configuration.burkeCluster.attentionProgram,
-        );
-        break;
+        return {
+          statement: configuration.burkeCluster.seedText,
+          field: configuration.burkeCluster.attentionProgram,
+        };
       default:
-        parts.push(configuration.pathDescription);
+        return { statement: configuration.pathDescription, field: "" };
     }
-    return parts.map((p) => p.trim()).filter((p) => p.length > 0).join("\n");
+  }
+
+  function modeSeedInfo(): string {
+    const { statement, field } = modeSeedMaterial();
+    return [statement, field]
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0)
+      .join("\n");
+  }
+
+  /**
+   * Search queries, which are not the same text the oracle reasons from. A
+   * seed and its attention program concatenated make one long conjunctive
+   * query that matches nothing — "the meaning of life" finds thousands of
+   * pages, and the same words followed by a sentence about average
+   * individuals finds none. So each statement is searched on its own, the
+   * surrounding field is broken into clauses, and every query is capped at a
+   * length full-text search can actually satisfy.
+   */
+  function startSearchPhrases(): string[] {
+    const cap = (text: string) => text.trim().split(/\s+/).slice(0, 12).join(" ");
+    const { statement, field } = modeSeedMaterial();
+    const phrases = [
+      configuration.start.value.trim(),
+      statement.trim(),
+      ...field
+        .split(/[;.\n]/)
+        .map((clause) => clause.trim())
+        .filter((clause) => clause.length > 8),
+    ]
+      .filter((phrase) => phrase.length > 0)
+      .map(cap);
+    return [...new Set(phrases)].slice(0, 3);
   }
 
   /**
@@ -602,13 +633,14 @@ async function executeWalkJob(options: {
       );
     }
 
+    const phrases = startSearchPhrases();
     const titles = new Set<string>();
-    for (const phrase of [guidance, seedInfo].filter((p) => p.length > 0)) {
-      for (const title of await bundle.wikipedia.searchTitles(phrase, 8)) {
+    for (const phrase of phrases) {
+      for (const title of await bundle.wikipedia.searchTitles(phrase, 6)) {
         titles.add(title);
       }
     }
-    const infos = await bundle.wikipedia.getArticleInfos([...titles].slice(0, 20));
+    const infos = await bundle.wikipedia.getArticleInfos([...titles].slice(0, 18));
     const candidates: Array<{ title: string; summary: string }> = [];
     for (const [, info] of infos) {
       if (info.missing || info.isDisambiguation || info.summary.length === 0) {
@@ -617,8 +649,12 @@ async function executeWalkJob(options: {
       candidates.push({ title: info.title, summary: info.summary.slice(0, 400) });
     }
     if (candidates.length === 0) {
+      // Name the queries actually sent, so a fruitless search is debuggable
+      // rather than an accusation against a phrase nobody searched for.
       throw new Error(
-        `No Wikipedia pages could be found to start from for "${(guidance || seedInfo).slice(0, 80)}"`,
+        `No Wikipedia pages could be found to start from. Searched: ${phrases
+          .map((p) => `"${p}"`)
+          .join(", ")}`,
       );
     }
 
