@@ -232,6 +232,62 @@ Assumptions recorded during implementation:
 - Burke runs remain non-reproducible from a seed: a live model makes every
   judgment. The rng governs candidate-pool sampling only.
 
+### Phase 3.7 — Anamnetic mode  ✅ (user-requested)
+
+A fourth walk strategy, endpoint-first. Where Burke asks *what does the
+current account fail to explain*, anamnesis asks:
+
+> What sequence of mediations would make this felt terminal sentence
+> conceptually and historically inhabitable?
+
+The user supplies a sentence they want to be able to say and have land. The
+walk works out what it OWES and pays those debts from the archive.
+
+- [x] **Charges** — the sentence decomposed into the lexical, claim,
+      affective, and structural elements carrying its force, each weighted
+- [x] **Debts** — what the reader must already possess for each charge to
+      land: unfamiliar term, unearned claim, missing precedent, absent
+      contrast, unfelt stakes, unmarked irony, assumed institution, assumed
+      mechanism. Prioritized; the walk is governed by them
+- [x] **Debt-first control flow**: select the debt and phrase the archival
+      question BEFORE candidates are collected (asserted by test)
+- [x] **Mediation scoring** — payment, concrete anchor, and historical
+      specificity dominate; penalties for restating-without-earning,
+      abstraction-without-anchor, redundancy, **sentimentality**, and
+      **anachronism** (the two hazards specific to walking toward a known
+      ending). Totals computed in-engine, auditable
+- [x] **Acceptance gate** — a page must actually pay, supply a concrete
+      anchor the reader can picture, and earn rather than restate. A debt
+      may not be settled in full on structural analogy or speculative
+      resonance alone (engine-enforced)
+- [x] **Partial payment with residue** — residue is not a disclaimer; it
+      breeds the next debt
+- [x] **Recollection tests** — the sentence is re-read periodically: what
+      now lands, what still falls flat, inhabitability score
+- [x] **Stopping on inhabitability**, then debts settled, then diminishing
+      payment; the mediation cap is last and labeled a safety net
+- [x] **Composition** ordered for *preparation* rather than discovery, with
+      an explicit ordering rationale, ending on the user's sentence
+      verbatim (the engine overwrites any paraphrase the model attempts)
+- [x] Panel exposing sentence, gloss, charges, debt ledger with status and
+      residue, mediations with anchors and bridges, re-readings, the
+      arrival, and the evidence ledger
+
+Shared-engine work landed with it (the refactor the BurkeCluster report
+called R1/R2/R4):
+
+- [x] `src/domain/explanation/` — evidence statuses, `NarrativeBridge`,
+      concrete anchors, weighted-score helper, shared by Burke and anamnesis.
+      Deficiency and Debt are deliberately NOT unified; they direct the walk
+      differently
+- [x] `src/domain/walk/strategy.ts` — `WalkStrategy` / `StrategyContext`
+      contract and `RUN_SCHEMA_VERSION`
+- [x] `src/server/oracle-factory.ts` — one factory for both oracles
+- [x] `schemaVersion` stamped on `BurkeRun` and `AnamnesisRun`
+
+Not done here (belongs with BurkeCluster): the graph refactor (R3). Anamnesis
+is a path mode and does not need it.
+
 ### Phase 4 — significance orchestration
 
 - Candidate-node dossiers (fetched facts / inferred metadata / LLM

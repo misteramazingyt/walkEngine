@@ -65,6 +65,12 @@ export function WalkConfigurationForm({
     v: WalkConfiguration["burke"][K],
   ) => set("burke", { ...value.burke, [key]: v });
 
+  const anamnetic = value.walkMode === "ANAMNETIC";
+  const setAnamnesis = <K extends keyof WalkConfiguration["anamnesis"]>(
+    key: K,
+    v: WalkConfiguration["anamnesis"][K],
+  ) => set("anamnesis", { ...value.anamnesis, [key]: v });
+
   return (
     <div className="flex flex-col gap-2 p-2">
       <div className="flex flex-wrap items-start gap-2">
@@ -79,7 +85,8 @@ export function WalkConfigurationForm({
             >
               <option value="RANDOM">Random</option>
               <option value="CRITERIOLOGICAL">Criteriological</option>
-              <option value="BURKE">Burke walker</option>
+              <option value="BURKE">Burke — unresolved question</option>
+              <option value="ANAMNETIC">Anamnetic — from a felt ending</option>
             </RetroSelect>
           </FieldRow>
           <FieldRow label="Sampling" htmlFor="sampling-mode">
@@ -435,6 +442,146 @@ export function WalkConfigurationForm({
                 />
                 <span className="w-8 text-[11px] text-ink-dim">
                   {value.burke.analogyTolerance.toFixed(2)}
+                </span>
+              </label>
+            </div>
+          </GroupBox>
+        )}
+
+        {anamnetic && (
+          <GroupBox
+            legend="Anamnetic — the ending to arrive at"
+            className="min-w-0 flex-1 sm:min-w-96"
+          >
+            <div>
+              <label
+                htmlFor="anamnesis-sentence"
+                className="mb-1 block text-[12px] font-bold"
+              >
+                Terminal sentence (the composition ends here, verbatim)
+              </label>
+              <RetroTextarea
+                id="anamnesis-sentence"
+                rows={2}
+                className="w-full"
+                value={value.anamnesis.terminalSentence}
+                placeholder="e.g. The machine did not take the soul out of the work; it revealed how recently the work had acquired one."
+                onChange={(e) =>
+                  setAnamnesis("terminalSentence", e.target.value)
+                }
+              />
+            </div>
+            <div className="mt-1 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+              <FieldRow label="Register" htmlFor="anamnesis-register">
+                <RetroSelect
+                  id="anamnesis-register"
+                  title="The feeling the sentence should produce on arrival"
+                  value={value.anamnesis.register}
+                  onChange={(e) =>
+                    setAnamnesis(
+                      "register",
+                      e.target.value as WalkConfiguration["anamnesis"]["register"],
+                    )
+                  }
+                >
+                  <option value="recognition">Recognition</option>
+                  <option value="vertigo">Vertigo</option>
+                  <option value="grief">Grief</option>
+                  <option value="irony">Irony</option>
+                  <option value="resolve">Resolve</option>
+                  <option value="unease">Unease</option>
+                </RetroSelect>
+              </FieldRow>
+              <FieldRow label="Re-read every" htmlFor="anamnesis-recollect">
+                <RetroInput
+                  id="anamnesis-recollect"
+                  type="number"
+                  min={1}
+                  max={10}
+                  className="w-16"
+                  title="Re-read the sentence every N mediations and test whether it lands yet"
+                  value={value.anamnesis.recollectionInterval}
+                  onChange={(e) =>
+                    setAnamnesis(
+                      "recollectionInterval",
+                      Number(e.target.value),
+                    )
+                  }
+                />
+              </FieldRow>
+            </div>
+            <FieldRow label="What you mean by it" htmlFor="anamnesis-intent">
+              <RetroInput
+                id="anamnesis-intent"
+                className="w-full max-w-md"
+                value={value.anamnesis.intent}
+                placeholder="optional gloss — helps the walker read the sentence as you do"
+                onChange={(e) => setAnamnesis("intent", e.target.value)}
+              />
+            </FieldRow>
+            <FieldRow label="Reader to assume" htmlFor="anamnesis-audience">
+              <RetroInput
+                id="anamnesis-audience"
+                className="w-full max-w-md"
+                value={value.anamnesis.audienceNote}
+                placeholder="e.g. curious, no background in art history"
+                onChange={(e) => setAnamnesis("audienceNote", e.target.value)}
+              />
+            </FieldRow>
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <FieldRow label="Max mediations (cap)" htmlFor="anamnesis-max">
+                <RetroInput
+                  id="anamnesis-max"
+                  type="number"
+                  min={3}
+                  max={30}
+                  className="w-16"
+                  title="Safety cap only — the walk ends when the sentence becomes inhabitable"
+                  value={value.anamnesis.maxMediations}
+                  onChange={(e) =>
+                    setAnamnesis("maxMediations", Number(e.target.value))
+                  }
+                />
+              </FieldRow>
+              <RetroCheckbox
+                label="Require motivated transitions"
+                title="No mediation is accepted unless a bridge can be written that stands without invoking the terminal sentence"
+                checked={value.anamnesis.requireMotivatedTransitions}
+                onChange={(e) =>
+                  setAnamnesis("requireMotivatedTransitions", e.target.checked)
+                }
+              />
+              <RetroCheckbox
+                label="Require concrete anchors"
+                title="Every mediation must supply a scene, object, person, or procedure the reader can picture"
+                checked={value.anamnesis.requireConcreteAnchors}
+                onChange={(e) =>
+                  setAnamnesis("requireConcreteAnchors", e.target.checked)
+                }
+              />
+              <label
+                htmlFor="anamnesis-sentiment"
+                className="flex items-center gap-2 text-[12px]"
+                title="Low: austere, material payment only. High: permits more affective material — but sentimentality is never unpenalized."
+              >
+                Sentimentality tolerance
+                <input
+                  id="anamnesis-sentiment"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  className="w-28 accent-(--color-accent)"
+                  value={value.anamnesis.sentimentalityTolerance}
+                  onChange={(e) =>
+                    setAnamnesis(
+                      "sentimentalityTolerance",
+                      Number(e.target.value),
+                    )
+                  }
+                />
+                <span className="w-8 text-[11px] text-ink-dim">
+                  {value.anamnesis.sentimentalityTolerance.toFixed(2)}
                 </span>
               </label>
             </div>

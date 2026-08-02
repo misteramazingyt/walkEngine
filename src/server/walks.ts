@@ -10,7 +10,19 @@ import type {
   StoryState,
   TheoryCheckpoint,
 } from "@/domain/burke/types";
-import { createBurkeOracle } from "@/server/burke-oracle-factory";
+import { runAnamnesisWalk } from "@/domain/anamnesis/engine";
+import type {
+  AnamnesisComposition,
+  AnamnesisState,
+  Mediation,
+  RecollectionTest,
+} from "@/domain/anamnesis/types";
+import type { AnamnesisOracle } from "@/domain/anamnesis/types";
+import { RUN_SCHEMA_VERSION } from "@/domain/walk/strategy";
+import {
+  createAnamnesisOracle,
+  createBurkeOracle,
+} from "@/server/oracle-factory";
 import {
   runCriteriologicalWalk,
   type EnrichedVisitedNode,
@@ -69,6 +81,17 @@ export interface BurkeRunDto {
   narrative: BurkeNarrative | null;
   rejectedRoutes: Array<{ title: string; reason: string }>;
   backtrackCount: number;
+  endReason: string;
+  createdAt: string;
+}
+
+export interface AnamnesisRunDto {
+  id: string;
+  state: AnamnesisState;
+  mediations: Mediation[];
+  recollectionTests: RecollectionTest[];
+  composition: AnamnesisComposition | null;
+  abandonedRoutes: Array<{ title: string; reason: string }>;
   endReason: string;
   createdAt: string;
 }
@@ -152,7 +175,7 @@ function jobToDto(row: {
 }
 
 export async function getWalk(projectId: string, db: PrismaClient = prisma) {
-  const [nodes, candidates, latestJob, burkeRun] = await Promise.all([
+  const [nodes, candidates, latestJob, burkeRun, anamnesisRun] = await Promise.all([
     db.sourceNode.findMany({
       where: { projectId },
       orderBy: { visitIndex: "asc" },
@@ -166,6 +189,10 @@ export async function getWalk(projectId: string, db: PrismaClient = prisma) {
       orderBy: { createdAt: "desc" },
     }),
     db.burkeRun.findFirst({
+      where: { projectId },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.anamnesisRun.findFirst({
       where: { projectId },
       orderBy: { createdAt: "desc" },
     }),
@@ -221,10 +248,31 @@ export async function getWalk(projectId: string, db: PrismaClient = prisma) {
       }
     : null;
 
+  const anamnesis: AnamnesisRunDto | null = anamnesisRun
+    ? {
+        id: anamnesisRun.id,
+        state: JSON.parse(anamnesisRun.state) as AnamnesisState,
+        mediations: JSON.parse(anamnesisRun.mediations) as Mediation[],
+        recollectionTests: JSON.parse(
+          anamnesisRun.recollectionTests,
+        ) as RecollectionTest[],
+        composition: anamnesisRun.composition
+          ? (JSON.parse(anamnesisRun.composition) as AnamnesisComposition)
+          : null,
+        abandonedRoutes: JSON.parse(anamnesisRun.abandonedRoutes) as Array<{
+          title: string;
+          reason: string;
+        }>,
+        endReason: anamnesisRun.endReason,
+        createdAt: anamnesisRun.createdAt.toISOString(),
+      }
+    : null;
+
   return {
     sourceNodes,
     candidateWalks,
     burkeRun: burke,
+    anamnesisRun: anamnesis,
     latestJob: latestJob ? jobToDto(latestJob) : null,
   };
 }
@@ -235,6 +283,7 @@ export async function startWalk(
   db: PrismaClient = prisma,
   gatewayFactory: (language: string, budget: number) => GatewayBundle = createGatewayBundle,
   oracleFactory: () => BurkeOracle = createBurkeOracle,
+  anamnesisOracleFactory: () => AnamnesisOracle = createAnamnesisOracle,
 ): Promise<
   | { ok: true; job: GenerationJobDto }
   | { ok: false; status: number; error: string }
@@ -295,6 +344,7 @@ export async function startWalk(
     db,
     gatewayFactory,
     oracleFactory,
+    anamnesisOracleFactory,
     projectId,
     jobId: job.id,
     configuration,
@@ -383,6 +433,7 @@ async function executeWalkJob(options: {
   db: PrismaClient;
   gatewayFactory: (language: string, budget: number) => GatewayBundle;
   oracleFactory: () => BurkeOracle;
+  anamnesisOracleFactory: () => AnamnesisOracle;
   projectId: string;
   jobId: string;
   configuration: ReturnType<typeof walkConfigurationSchema.parse>;
@@ -392,6 +443,7 @@ async function executeWalkJob(options: {
     db,
     gatewayFactory,
     oracleFactory,
+    anamnesisOracleFactory,
     projectId,
     jobId,
     configuration,
@@ -419,12 +471,22 @@ async function executeWalkJob(options: {
       data: { status: "WALKING" },
     });
 
-    if (configuration.walkMode === "RANDOM") {
-      await executeRandomWalk();
-    } else if (configuration.walkMode === "CRITERIOLOGICAL") {
-      await executeCriteriologicalWalk();
-    } else {
-      await executeBurkeWalk();
+    // Strategy dispatch. Each branch owns its engine call and its own
+    // persistence transaction; everything before this point (gateways,
+    // budget, job bookkeeping, start resolution) is shared.
+    switch (configuration.walkMode) {
+      case "RANDOM":
+        await executeRandomWalk();
+        break;
+      case "CRITERIOLOGICAL":
+        await executeCriteriologicalWalk();
+        break;
+      case "BURKE":
+        await executeBurkeWalk();
+        break;
+      case "ANAMNETIC":
+        await executeAnamnesisWalk();
+        break;
     }
   } catch (error) {
     await failJob(error instanceof Error ? error.message : String(error));
@@ -649,6 +711,152 @@ async function executeWalkJob(options: {
         status: "COMPLETE",
         progress: 1,
         currentStep: `Burke walk complete: ${result.visited.length} pages, ${result.notes.length} notes, ${result.requestsUsed} requests — ${result.endReason.replaceAll("_", " ").toLowerCase()}`,
+      },
+    });
+  }
+
+  async function executeAnamnesisWalk(): Promise<void> {
+    const sentence = configuration.anamnesis.terminalSentence.trim();
+    if (sentence.length === 0) {
+      throw new Error(
+        "Anamnetic walks need a terminal sentence — the felt ending to arrive at",
+      );
+    }
+    const bundle = gatewayFactory(
+      configuration.language,
+      configuration.maxGraphRequests,
+    );
+    const oracle = anamnesisOracleFactory();
+
+    // The entry article: the configured start, or — since the walk is
+    // defined by its ending rather than its beginning — a search from the
+    // terminal sentence itself.
+    const startTitle =
+      pinnedStartTitle ??
+      (
+        await bundle.wikipedia.resolveStart(
+          configuration.start.kind === "RANDOM" ||
+            configuration.start.value.trim().length === 0
+            ? { kind: "TOPIC", value: sentence }
+            : configuration.start,
+        )
+      ).title;
+
+    const result = await runAnamnesisWalk({
+      wikipedia: bundle.wikipedia,
+      oracle,
+      rng: createRng(configuration.seed),
+      config: {
+        terminal: {
+          text: sentence,
+          register: configuration.anamnesis.register,
+          intent: configuration.anamnesis.intent,
+        },
+        audienceNote: configuration.anamnesis.audienceNote,
+        recollectionInterval: configuration.anamnesis.recollectionInterval,
+        maxMediations: configuration.anamnesis.maxMediations,
+        branchFactor: configuration.branchFactor,
+        excludeMetaPages: configuration.excludeMetaPages,
+        allowRevisits: configuration.allowRevisits,
+        requireMotivatedTransitions:
+          configuration.anamnesis.requireMotivatedTransitions,
+        sentimentalityTolerance:
+          configuration.anamnesis.sentimentalityTolerance,
+        requireConcreteAnchors: configuration.anamnesis.requireConcreteAnchors,
+      },
+      startTitle,
+      onProgress: async (p) => {
+        await db.generationJob.update({
+          where: { id: jobId },
+          data: {
+            progress: p.completed / p.target,
+            currentStep: `${p.stage} — ${p.completed}/${p.target} mediations: ${p.currentTitle} (${p.requestsUsed} requests)`,
+          },
+        });
+      },
+    });
+
+    if (result.visited.length === 0) {
+      await failJob("Anamnetic walk visited no articles");
+      return;
+    }
+
+    await db.$transaction(async (tx) => {
+      await tx.sourceNode.deleteMany({ where: { projectId } });
+      await tx.candidateWalk.deleteMany({ where: { projectId } });
+      await tx.burkeRun.deleteMany({ where: { projectId } });
+      await tx.anamnesisRun.deleteMany({ where: { projectId } });
+      for (const node of result.visited) {
+        const created = await tx.sourceNode.create({
+          data: {
+            projectId,
+            wikipediaPageId: node.info.pageId,
+            wikidataId: node.info.wikidataId,
+            title: node.info.title,
+            url: node.info.url,
+            summary: node.info.summary,
+            categories: JSON.stringify(node.categories),
+            rawWalkScore:
+              node.assessments.find((a) => a.title === node.info.title)?.total ??
+              null,
+            // Candidate assessments become the per-step audit trail.
+            outgoingLinks: JSON.stringify([
+              ...node.assessments.map((a) => ({
+                title: a.title,
+                eligible: true,
+                score: a.total,
+                features: a.scores as unknown as Record<string, number>,
+                why: [
+                  a.evidenceStatus,
+                  a.rationale,
+                  `would pay: ${a.predictedPayment}`,
+                ],
+              })),
+              ...node.rejections.map((r) => ({
+                title: r.title,
+                eligible: false,
+                exclusionReason: r.reason,
+              })),
+            ]),
+            visitIndex: node.visitIndex,
+          },
+        });
+        if (node.visitIndex === 0) {
+          await tx.walkProject.update({
+            where: { id: projectId },
+            data: { startNodeId: created.id },
+          });
+        }
+      }
+      await tx.anamnesisRun.create({
+        data: {
+          projectId,
+          schemaVersion: RUN_SCHEMA_VERSION,
+          state: JSON.stringify(result.state),
+          mediations: JSON.stringify(result.mediations),
+          recollectionTests: JSON.stringify(result.recollectionTests),
+          composition: result.composition
+            ? JSON.stringify(result.composition)
+            : null,
+          abandonedRoutes: JSON.stringify(result.abandonedRoutes),
+          endReason: result.endReason,
+        },
+      });
+      await tx.walkProject.update({
+        where: { id: projectId },
+        data: { status: "WALK_READY" },
+      });
+    });
+
+    const unpaid = result.state.debts.filter(
+      (d) => d.status === "unpaid" || d.status === "partially_paid",
+    ).length;
+    await db.generationJob.update({
+      where: { id: jobId },
+      data: {
+        status: "COMPLETE",
+        progress: 1,
+        currentStep: `Anamnetic walk complete: ${result.mediations.length} mediations, ${unpaid} debts outstanding, ${result.requestsUsed} requests — ${result.endReason.replaceAll("_", " ").toLowerCase()}`,
       },
     });
   }

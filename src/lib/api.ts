@@ -1,5 +1,6 @@
 import type { WalkProjectDto, UpdateProjectInput } from "@/server/projects";
 import type {
+  AnamnesisRunDto,
   BurkeRunDto,
   CandidateWalkDto,
   GenerationJobDto,
@@ -12,6 +13,7 @@ export interface WalkDto {
   sourceNodes: SourceNodeDto[];
   candidateWalks: CandidateWalkDto[];
   burkeRun: BurkeRunDto | null;
+  anamnesisRun: AnamnesisRunDto | null;
   latestJob: GenerationJobDto | null;
 }
 

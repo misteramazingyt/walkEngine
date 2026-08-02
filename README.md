@@ -38,6 +38,19 @@ New in Phase 3.5:
   the walk out of dead branches; theory checkpoints end it at saturation;
   the real stopping condition is redescription. The right panel exposes the
   whole apparatus
+- **Anamnetic mode** — endpoint-first. You supply a **terminal sentence**:
+  a felt ending you want to be able to say and have land. The walker
+  decomposes it into *charges* (the words, claims, feelings, and rhetorical
+  turns carrying its force) and works out the **debts** each charge incurs —
+  what a reader must already possess for it to land rather than fall flat.
+  Each step selects a debt, phrases the archival question that would settle
+  it, and judges candidates by what they would *pay*: a page must supply a
+  concrete anchor and earn the charge rather than restate it, and no debt
+  may be settled in full on analogy alone. Partial payments declare their
+  residue, which breeds the next debt. The sentence is periodically re-read
+  — what lands, what still falls flat — and the walk ends when it becomes
+  *inhabitable*, not when pages run out. The composition is then ordered for
+  preparation rather than discovery and closes on your sentence verbatim
 - **Motif modules** (Authenticity under Mechanization; Authority) —
   reusable ways of becoming curious, not topics
 - **Gemini provider** (`GEMINI_API_KEY`, optional `GEMINI_MODEL`, default

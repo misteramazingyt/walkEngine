@@ -2,8 +2,30 @@
 // Defined as const tuples so both TypeScript unions and Zod enums derive
 // from a single source of truth.
 
-export const WALK_MODES = ["RANDOM", "CRITERIOLOGICAL", "BURKE"] as const;
+export const WALK_MODES = [
+  "RANDOM",
+  "CRITERIOLOGICAL",
+  "BURKE",
+  "ANAMNETIC",
+] as const;
 export type WalkMode = (typeof WALK_MODES)[number];
+
+export const WALK_MODE_LABELS: Record<WalkMode, string> = {
+  RANDOM: "Random",
+  CRITERIOLOGICAL: "Criteriological",
+  BURKE: "Burke — unresolved-question traversal",
+  ANAMNETIC: "Anamnetic — start from a felt ending",
+};
+
+/** The register a terminal sentence is meant to land in. */
+export const ANAMNETIC_REGISTERS = [
+  "recognition",
+  "vertigo",
+  "grief",
+  "irony",
+  "resolve",
+  "unease",
+] as const;
 
 // The BurkeWalker's entire recursive question grammar. The walker never
 // asks arbitrary questions — it chooses among exactly these six.

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  ANAMNETIC_REGISTERS,
   CONSCIOUSNESS_CONTROLS,
   CRITERIA,
   ENDPOINT_STRATEGIES,
@@ -111,6 +112,39 @@ export const walkConfigurationSchema = z.object({
       requireMotivatedTransitions: true,
       analogyTolerance: 0.25,
       allowProductiveDetours: false,
+    }),
+
+  // Anamnesis: the walk begins from a felt ending and searches for the
+  // mediations that would make it inhabitable.
+  anamnesis: z
+    .object({
+      /** The sentence the composition must arrive at, verbatim. */
+      terminalSentence: z.string().default(""),
+      register: z.enum(ANAMNETIC_REGISTERS).default("recognition"),
+      /** Optional gloss of what the author means by it. */
+      intent: z.string().default(""),
+      /** Who the reader is assumed to be. */
+      audienceNote: z.string().default(""),
+      /** Re-read the sentence every N accepted mediations. */
+      recollectionInterval: z.number().int().min(1).max(10).default(3),
+      /** Safety cap — the real stopping condition is inhabitability. */
+      maxMediations: z.number().int().min(3).max(30).default(9),
+      requireMotivatedTransitions: z.boolean().default(true),
+      /** Every mediation must supply something the reader can picture. */
+      requireConcreteAnchors: z.boolean().default(true),
+      /** 0 = austere; 1 = more affective material (never unpenalized). */
+      sentimentalityTolerance: z.number().min(0).max(1).default(0.2),
+    })
+    .default({
+      terminalSentence: "",
+      register: "recognition",
+      intent: "",
+      audienceNote: "",
+      recollectionInterval: 3,
+      maxMediations: 9,
+      requireMotivatedTransitions: true,
+      requireConcreteAnchors: true,
+      sentimentalityTolerance: 0.2,
     }),
 });
 
