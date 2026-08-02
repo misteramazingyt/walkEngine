@@ -81,3 +81,14 @@ body {
 .react-flow__attribution {
   background: transparent;
 }
+
+/* iOS Safari auto-zooms into focused inputs whose font-size is under 16px,
+   which wrecks the workbench layout on phones. Unlayered rule so it outranks
+   the layered text-size utilities on small screens. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

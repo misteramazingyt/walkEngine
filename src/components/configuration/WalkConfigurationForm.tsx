@@ -91,7 +91,7 @@ export function WalkConfigurationForm({
           </FieldRow>
         </GroupBox>
 
-        <GroupBox legend="Starting point" className="min-w-72">
+        <GroupBox legend="Starting point" className="min-w-0 sm:min-w-72">
           <FieldRow label="Resolve start as" htmlFor="start-kind">
             <RetroSelect
               id="start-kind"
@@ -158,8 +158,8 @@ export function WalkConfigurationForm({
           </FieldRow>
         </GroupBox>
 
-        <GroupBox legend="Walk parameters" className="min-w-72">
-          <div className="grid grid-cols-2 gap-x-4">
+        <GroupBox legend="Walk parameters" className="min-w-0 sm:min-w-72">
+          <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
             <FieldRow label="Walk length" htmlFor="walk-length">
               <RetroInput
                 id="walk-length"
@@ -273,7 +273,7 @@ export function WalkConfigurationForm({
               />
             </FieldRow>
           </div>
-          <div className="mt-1 flex gap-4">
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
             <RetroCheckbox
               label="Allow revisiting nodes"
               checked={value.allowRevisits}
@@ -314,7 +314,7 @@ export function WalkConfigurationForm({
         }
       >
         <div
-          className={`grid grid-cols-2 gap-x-6 md:grid-cols-4 ${
+          className={`grid grid-cols-1 gap-x-6 sm:grid-cols-2 xl:grid-cols-4 ${
             criteriological ? "" : "opacity-50"
           }`}
         >

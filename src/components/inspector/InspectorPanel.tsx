@@ -11,7 +11,7 @@ export function InspectorPanel({ project }: { project: WalkProjectDto }) {
   const selection = useWorkbenchStore((s) => s.selection);
 
   return (
-    <div className="flex items-start gap-6 px-3 py-2 text-[12px]">
+    <div className="flex flex-col gap-2 px-3 py-2 text-[12px] lg:flex-row lg:items-start lg:gap-6">
       <div>
         <span className="font-bold">Selection:</span>{" "}
         {selection

@@ -25,7 +25,7 @@ export default function HomePage() {
   });
 
   return (
-    <main className="mx-auto flex h-full max-w-3xl flex-col gap-4 p-6">
+    <main className="mx-auto flex h-full max-w-3xl flex-col gap-4 p-3 sm:p-6">
       <div className="bevel-out p-[3px]">
         <TitleBar title="MOTIF WALK — Cultural Memory Workbench" />
         <div className="px-4 py-3 text-[12px] leading-relaxed">
@@ -38,7 +38,7 @@ export default function HomePage() {
 
       <Panel title="New project" className="shrink-0">
         <form
-          className="flex items-center gap-2 px-3 py-3"
+          className="flex flex-wrap items-center gap-2 px-3 py-3"
           onSubmit={(event) => {
             event.preventDefault();
             if (title.trim().length === 0 || createMutation.isPending) return;

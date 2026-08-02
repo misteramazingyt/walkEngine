@@ -34,7 +34,8 @@ export function RetroButton({
       disabled={disabled}
       title={disabled && disabledReason ? disabledReason : title}
       className={cx(
-        "bevel-out px-3 py-1 text-[12px] select-none",
+        // min-h keeps the target finger-sized on touch screens.
+        "bevel-out min-h-8 px-3 py-1 text-[12px] select-none",
         primary && "font-bold",
         disabled
           ? "text-ink-dim cursor-not-allowed opacity-70"
@@ -143,8 +144,8 @@ export function FieldRow({
   htmlFor?: string;
 }) {
   return (
-    <div className="flex items-center gap-2 py-0.5">
-      <label htmlFor={htmlFor} className="w-44 shrink-0 text-[12px]">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1">
+      <label htmlFor={htmlFor} className="w-36 shrink-0 text-[12px] sm:w-44">
         {label}
       </label>
       {children}

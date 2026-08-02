@@ -81,7 +81,9 @@ export default function ProjectWorkbenchPage({
     JSON.stringify(config) !== JSON.stringify(project.configuration);
 
   return (
-    <main className="flex h-full flex-col gap-1.5 p-2">
+    // Desktop (lg+): fixed-viewport workbench with internal panel scrolling.
+    // Phone/tablet: panels stack and the document itself scrolls.
+    <main className="flex min-h-full flex-col gap-1.5 p-2 lg:h-full">
       <div className="bevel-out shrink-0 p-[3px]">
         <TitleBar
           title={`MOTIF WALK — ${project.title}`}
@@ -91,7 +93,7 @@ export default function ProjectWorkbenchPage({
             </span>
           }
         />
-        <nav className="flex gap-4 px-2 py-1 text-[12px]">
+        <nav className="flex flex-wrap gap-x-4 gap-y-1 px-2 py-1 text-[12px]">
           {MENUS.map((menu) =>
             menu.activatesIn ? (
               <span
@@ -112,7 +114,7 @@ export default function ProjectWorkbenchPage({
 
       <Panel
         title="Walk configuration"
-        className="max-h-[42vh] shrink-0"
+        className="max-h-[60vh] shrink-0 lg:max-h-[42vh]"
         titleRight={
           <span className="text-[11px] font-normal">
             seed “{config.seed}” · persisted per project
@@ -131,18 +133,27 @@ export default function ProjectWorkbenchPage({
         />
       </Panel>
 
-      <div className="flex min-h-0 flex-1 gap-1.5">
-        <Panel title="Editable flowchart" className="min-w-0 flex-[3]">
+      <div className="flex min-h-0 flex-1 flex-col gap-1.5 lg:flex-row">
+        <Panel
+          title="Editable flowchart"
+          className="h-[60vh] min-w-0 shrink-0 lg:h-auto lg:min-h-0 lg:flex-[3] lg:shrink"
+        >
           <div className="flex h-full flex-col">
             <FlowchartCanvas />
           </div>
         </Panel>
-        <Panel title="Draft 0" className="min-w-0 flex-[2]">
+        <Panel
+          title="Draft 0"
+          className="h-[50vh] min-w-0 shrink-0 lg:h-auto lg:min-h-0 lg:flex-[2] lg:shrink"
+        >
           <DraftPanel />
         </Panel>
       </div>
 
-      <Panel title="Evidence / transition inspector" className="h-24 shrink-0">
+      <Panel
+        title="Evidence / transition inspector"
+        className="max-h-48 shrink-0 lg:h-24"
+      >
         <InspectorPanel project={project} />
       </Panel>
     </main>

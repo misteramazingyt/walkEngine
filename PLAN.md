@@ -57,6 +57,17 @@ Deviation from the original spec, with rationale:
 
 **Acceptance:** the user can create and reopen a persisted project.
 
+Phase 1 addendum — deployment and mobile:
+
+- [x] Dockerfile + docker-compose + migration entrypoint; SQLite on a
+      mounted `/data` volume, `prisma migrate deploy` on every boot
+- [x] Responsive workbench: fixed three-panel surface on desktop (lg+),
+      stacked scrolling column on phones; 16px inputs on small screens so
+      iOS Safari does not zoom on focus
+- [x] Web-app manifest + generated icons; installable to a phone or desktop
+      home screen (no service worker by design — offline caching of a
+      database-backed workbench would misrepresent persisted state)
+
 ### Phase 2 — Wikipedia random walk
 
 - MediaWiki Action API integration (resolution, links, extracts, metadata,
@@ -124,6 +135,17 @@ from a later historiographical motif.
 segmentation, or user edits.
 
 ## Remaining risks (updated per phase)
+
+- The Docker image was validated by executing its exact build and boot steps
+  (prisma generate, next build, migrate deploy against a fresh volume path,
+  `next start -H 0.0.0.0`, kill-and-restart persistence check) — but a full
+  `docker build` could not run in the development sandbox because its network
+  policy denies Docker Hub's CDN. Run `docker build` once in CI or on the
+  target host to confirm; the single-stage Dockerfile has no tracing edge
+  cases that would behave differently in-container.
+- The single-stage image is large (full node_modules). Switching to Next.js
+  standalone output would shrink it considerably; deferred until the native
+  better-sqlite3 dependency-tracing path is worth verifying.
 
 - `npm audit` reports 3 high advisories, all transitive inside
   `next@16.2.12` (its pinned `postcss` and `sharp`); no fix without changing

@@ -60,6 +60,50 @@ Copy `.env.example` to `.env` if it does not exist. `ANTHROPIC_API_KEY` /
 | `npm run typecheck` | `tsc --noEmit` (strict mode)           |
 | `npm test`          | Vitest (uses a temp SQLite database)   |
 
+## Deployment
+
+The app is a single Next.js server with a file-backed SQLite database, so it
+deploys anywhere that offers a **persistent disk**: Docker on a VPS,
+Fly.io, Railway, Render, a home server. It is responsive — the workbench is a
+fixed three-panel surface on desktop and stacks into a scrolling column on
+phones — and ships a web-app manifest, so it can be installed to a phone or
+desktop home screen from the browser menu.
+
+### Docker (recommended)
+
+```bash
+docker build -t motif-walk .
+docker run -d -p 3000:3000 -v motif-walk-data:/data motif-walk
+# or: docker compose up -d
+```
+
+The entrypoint runs `prisma migrate deploy` against the volume on every boot
+(a no-op when up to date), so a fresh volume boots straight into a working
+app and schema upgrades apply themselves on redeploy. The database lives at
+`/data/motif-walk.db` on the named volume; back it up by copying that file.
+
+Set `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` via environment (compose file or
+`docker run -e`) once Phase 4 lands; nothing reads them yet.
+
+### Bare Node
+
+```bash
+npm ci && npx prisma generate && npm run build
+DATABASE_URL="file:/var/lib/motif-walk/motif-walk.db" npx prisma migrate deploy
+DATABASE_URL="file:/var/lib/motif-walk/motif-walk.db" npx next start -H 0.0.0.0 -p 3000
+```
+
+Put a TLS-terminating reverse proxy (Caddy, nginx) in front for anything
+non-local — the manifest and phone installation require HTTPS in practice.
+
+### What does not work
+
+Serverless platforms without persistent disks (e.g. Vercel's default
+runtime) will lose the SQLite file between invocations. Deploying there
+would require swapping the Prisma datasource to a hosted database (Turso,
+Postgres); the schema is compatible, but that swap is deliberately out of
+scope for the MVP.
+
 ## Architecture
 
 - **Next.js 16 (App Router), React 19, TypeScript strict**

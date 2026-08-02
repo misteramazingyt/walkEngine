@@ -1,0 +1,16 @@
+services:
+  motif-walk:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - motif-walk-data:/data
+    environment:
+      # Unused until Phase 4; set them here (or in an env_file) when live
+      # LLM orchestration lands.
+      ANTHROPIC_API_KEY: ""
+      ANTHROPIC_MODEL: ""
+    restart: unless-stopped
+
+volumes:
+  motif-walk-data:
