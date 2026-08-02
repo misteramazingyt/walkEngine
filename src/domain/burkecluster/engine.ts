@@ -53,6 +53,12 @@ import type {
 export interface BurkeClusterEngineConfig {
   rawSeed: string;
   attentionText: string;
+  // A start the user named explicitly, already resolved to a real title.
+  // The seed region is otherwise the model's to choose: this page is pinned
+  // into it as the first entry and offered to the oracle as a candidate, but
+  // the oracle still assembles the rest of the region and names the subject,
+  // which must then account for the pinned page like any other.
+  pinnedSeedTitle?: string;
   minimumSubjectCount: number;
   maxSubjectDepth: number;
   // Sampling
@@ -217,10 +223,21 @@ export async function runBurkeClusterWalk(options: {
     await report("Resolving the seed region", config.rawSeed, 0);
     const searchCandidates: Array<{ title: string; summary: string }> = [];
     const seen = new Set<string>();
+    const pinnedTitle = config.pinnedSeedTitle?.trim() ?? "";
+    if (pinnedTitle.length > 0) seen.add(pinnedTitle);
     if (wikipedia.searchTitles) {
-      const phrases = [config.rawSeed, ...config.attentionText.split(/[;.]/)]
+      // The seed is always searched, whatever its length. The length filter
+      // applies only to the attention program's clauses, where splitting on
+      // [;.] leaves fragments too short to search usefully — applying it to
+      // the seed as well silently dropped every seed of eight characters or
+      // fewer ("carnival", "radar"), leaving no candidates at all and
+      // failing with a message that blamed Wikipedia for the omission.
+      const attentionClauses = config.attentionText
+        .split(/[;.]/)
         .map((p) => p.trim())
-        .filter((p) => p.length > 8)
+        .filter((p) => p.length > 8);
+      const phrases = [config.rawSeed.trim(), ...attentionClauses]
+        .filter((p) => p.length > 0)
         .slice(0, 3);
       for (const phrase of phrases) {
         for (const title of await wikipedia.searchTitles(phrase, 6)) {
@@ -243,6 +260,17 @@ export async function runBurkeClusterWalk(options: {
         `No Wikipedia pages could be found for the seed "${config.rawSeed}"`,
       );
     }
+    // A pinned start that cannot anchor a seed region — missing, a
+    // disambiguation page, no lead summary — fails here. Quietly beginning
+    // somewhere else would misreport whose choice the starting point was.
+    if (
+      pinnedTitle.length > 0 &&
+      !searchCandidates.some((c) => c.title === pinnedTitle)
+    ) {
+      throw new Error(
+        `The specified start "${pinnedTitle}" cannot anchor a seed region — it is missing, a disambiguation page, or has no lead summary`,
+      );
+    }
 
     const resolution = await oracle.resolveSeed({
       rawSeed: config.rawSeed,
@@ -250,6 +278,21 @@ export async function runBurkeClusterWalk(options: {
       candidates: searchCandidates,
     });
     modelCalls += 1;
+    // The pinned start leads the seed region whether or not the oracle chose
+    // it; the oracle's own ordering governs everything after it.
+    if (pinnedTitle.length > 0) {
+      const chosen = resolution.seedPages.find((p) => p.title === pinnedTitle);
+      resolution.seedPages = [
+        chosen ?? {
+          title: pinnedTitle,
+          url: candidateInfos.get(pinnedTitle)?.url ?? "",
+          reason:
+            "Specified as the start; the seed region was assembled around it",
+          score: 1,
+        },
+        ...resolution.seedPages.filter((p) => p.title !== pinnedTitle),
+      ];
+    }
     state.seed.resolvedPages = resolution.seedPages;
     state.attention = resolution.attention;
     seedSubject = resolution.seedSubject;

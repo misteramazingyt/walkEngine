@@ -61,6 +61,51 @@ describe("BurkeCluster engine", () => {
     expect(result.state.attention.salienceTerms.length).toBeGreaterThanOrEqual(3);
   });
 
+  it("searches a short seed instead of dropping it", async () => {
+    // A seed of eight characters or fewer used to be filtered out alongside
+    // the attention program's short clauses, so no search ran at all and the
+    // walk died claiming Wikipedia had nothing for a seed it never sent.
+    const gateway = new FixtureWikipediaGateway();
+    const searched: string[] = [];
+    const search = gateway.searchTitles.bind(gateway);
+    vi.spyOn(gateway, "searchTitles").mockImplementation(async (p, n) => {
+      searched.push(p);
+      return search(p, n);
+    });
+
+    const result = await runBurkeClusterWalk({
+      wikipedia: gateway,
+      entityFacts: gateway,
+      oracle: new FixtureBurkeClusterOracle(),
+      rng: createRng("burkecluster-short-seed"),
+      config: { ...BASE, rawSeed: "coinage", attentionText: "" },
+    });
+
+    expect(searched).toContain("coinage");
+    expect(result.state.seed.resolvedPages.length).toBeGreaterThan(0);
+  });
+
+  it("pins a specified start at the head of the seed region", async () => {
+    const result = await walk({}, { pinnedSeedTitle: "Alexandria" });
+    expect(result.state.seed.resolvedPages[0].title).toBe("Alexandria");
+    // The region stays plural — the oracle still assembles the rest.
+    expect(result.state.seed.resolvedPages.length).toBeGreaterThan(1);
+  });
+
+  it("refuses a specified start that cannot anchor a seed region", async () => {
+    await expect(
+      walk({}, { pinnedSeedTitle: "Touchstone (disambiguation)" }),
+    ).rejects.toThrow(/cannot anchor a seed region/);
+  });
+
+  it("leaves the first article to the oracle when no start is given", async () => {
+    const result = await walk();
+    expect(result.state.seed.resolvedPages.length).toBeGreaterThan(1);
+    expect(result.state.seed.resolvedPages[0].reason).not.toMatch(
+      /Specified as the start/,
+    );
+  });
+
   it("selects the deficiency BEFORE sampling the archive", async () => {
     const oracle = new FixtureBurkeClusterOracle();
     const order: string[] = [];

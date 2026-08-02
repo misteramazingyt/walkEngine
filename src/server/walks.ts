@@ -927,6 +927,17 @@ async function executeWalkJob(options: {
     const oracle = clusterOracleFactory();
     const bc = configuration.burkeCluster;
 
+    // The first article is the oracle's to choose from a search over the
+    // seed — unless a start was named, or a same-seed regeneration has one
+    // to reproduce, in which case that page is pinned and the oracle builds
+    // the seed region around it.
+    const pinnedSeedTitle =
+      pinnedStartTitle ??
+      (configuration.start.kind !== "RANDOM" &&
+      configuration.start.value.trim().length > 0
+        ? (await bundle.wikipedia.resolveStart(configuration.start)).title
+        : undefined);
+
     const result = await runBurkeClusterWalk({
       wikipedia: bundle.wikipedia,
       entityFacts: bundle.entityFacts,
@@ -935,6 +946,7 @@ async function executeWalkJob(options: {
       config: {
         rawSeed: seedText,
         attentionText: bc.attentionProgram,
+        pinnedSeedTitle,
         minimumSubjectCount: bc.minimumSubjectCount,
         maxSubjectDepth: bc.maxSubjectDepth,
         episodesPerCycle: bc.episodesPerCycle,

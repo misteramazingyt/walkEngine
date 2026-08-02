@@ -52,7 +52,11 @@ New in Phase 3.5:
   *inhabitable*, not when pages run out. The composition is then ordered for
   preparation rather than discovery and closes on your sentence verbatim
 - **BurkeCluster mode** — discovers narrative *subjects* rather than pages.
-  Your seed is the provisional **ending**; the walker samples the archive
+  Your seed is the provisional **ending**; the walker opens by searching the
+  archive for it and letting the model choose the seed region — the first
+  article is its judgment, not a lookup — unless you name a start, which is
+  pinned at the head of that region and the model assembles the rest around
+  it. From there it samples the archive
   outward with a mixture of stochastic walk policies, builds a local graph
   (outlinks, shared neighbours, reciprocity, Wikidata relations, each kept
   with its provenance), and detects concentrations with multi-resolution
