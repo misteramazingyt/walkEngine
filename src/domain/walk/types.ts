@@ -86,12 +86,45 @@ export interface WalkGateway {
   requestsUsed(): number;
 }
 
-/** Resolves a user start specification to a canonical article title. */
+/**
+ * Resolves a user start specification to a canonical article title. Only the
+ * mechanical kinds: an LLM-determined start is judgment, not lookup, and is
+ * settled by a StartOracle above this layer.
+ */
 export interface StartResolver {
   resolveStart(start: {
     kind: "TITLE" | "URL" | "TOPIC" | "RANDOM";
     value: string;
   }): Promise<{ title: string }>;
+}
+
+/** One page the oracle passed over, and why — the audit of a chosen start. */
+export interface StartRunnerUp {
+  title: string;
+  whyNot: string;
+}
+
+export interface StartSelection {
+  title: string;
+  reason: string;
+  runnerUps: StartRunnerUp[];
+}
+
+/**
+ * Chooses the entry article from the seed material a mode already carries.
+ * The oracle only ever names one of the candidate pages it was given; it is
+ * never asked to produce a title, so it cannot invent an article that does
+ * not exist. Available to every walk mode — what differs between modes is
+ * the seed material handed in, not the act of choosing.
+ */
+export interface StartOracle {
+  chooseStart(input: {
+    /** The mode's own seed material: seed text, terminal sentence, priming. */
+    seedInfo: string;
+    /** Optional free text the user typed alongside the LLM start kind. */
+    guidance: string;
+    candidates: Array<{ title: string; summary: string }>;
+  }): Promise<StartSelection>;
 }
 
 export interface WalkEngineConfig {

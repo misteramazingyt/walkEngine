@@ -1,6 +1,9 @@
 import type { BurkeOracle } from "@/domain/burke/types";
 import type { AnamnesisOracle } from "@/domain/anamnesis/types";
+import type { StartOracle } from "@/domain/walk/types";
 import { GeminiProvider } from "@/integrations/gemini/provider";
+import { LlmStartOracle } from "@/integrations/llm/start-oracle";
+import { FixtureStartOracle } from "@/integrations/llm/fixture-start-oracle";
 import { LlmBurkeOracle } from "@/integrations/llm/burke-oracle";
 import { FixtureBurkeOracle } from "@/integrations/llm/fixture-burke-oracle";
 import { LlmAnamnesisOracle } from "@/integrations/llm/anamnesis-oracle";
@@ -25,4 +28,12 @@ export function createBurkeOracle(): BurkeOracle {
 export function createAnamnesisOracle(): AnamnesisOracle {
   if (fixturesEnabled()) return new FixtureAnamnesisOracle();
   return new LlmAnamnesisOracle(new GeminiProvider());
+}
+
+// Every walk mode can be told to let the model choose its entry article, so
+// this factory is reached even from the two deterministic modes — which is
+// also the only LLM call those modes ever make.
+export function createStartOracle(): StartOracle {
+  if (fixturesEnabled()) return new FixtureStartOracle();
+  return new LlmStartOracle(new GeminiProvider());
 }

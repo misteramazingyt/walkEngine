@@ -72,6 +72,15 @@ New in Phase 3.5:
   reverse discovery order, opening on an ordinary scene and culminating in
   your seed; the Cluster Atlas, Discovery Trace, and transition table keep
   the computation inspectable beside it
+- **LLM-determined start** — a "Resolve start as" option available in every
+  mode, including the two deterministic ones. Whatever text the mode already
+  carries (Burke seed and priming, terminal sentence, cluster seed and
+  attention program, or the path description) is searched, and the model
+  picks the entry article from the pages that search actually returned,
+  giving its reason and the candidates it passed over. A title it names that
+  is not among those candidates is refused rather than trusted, so the walk
+  can never begin at a page nobody verified. Switching to a seeded mode
+  selects it automatically in place of an untouched "Random article"
 - **Motif modules** (Authenticity under Mechanization; Authority) —
   reusable ways of becoming curious, not topics
 - **Gemini provider** (`GEMINI_API_KEY`, optional `GEMINI_MODEL`, default

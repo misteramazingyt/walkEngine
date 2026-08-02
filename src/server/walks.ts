@@ -22,6 +22,7 @@ import { RUN_SCHEMA_VERSION } from "@/domain/walk/strategy";
 import {
   createAnamnesisOracle,
   createBurkeOracle,
+  createStartOracle,
 } from "@/server/oracle-factory";
 import { runBurkeClusterWalk } from "@/domain/burkecluster/engine";
 import type {
@@ -37,7 +38,11 @@ import {
   type EnrichedVisitedNode,
 } from "@/domain/walk/criteriological-walk";
 import { scorePath, type PathScore } from "@/domain/walk/features";
-import type { CandidateRecord, WalkEndReason } from "@/domain/walk/types";
+import type {
+  CandidateRecord,
+  StartOracle,
+  WalkEndReason,
+} from "@/domain/walk/types";
 import { walkConfigurationSchema } from "@/schemas/walk-configuration";
 import { prisma } from "@/server/db";
 import {
@@ -330,6 +335,7 @@ export async function startWalk(
   oracleFactory: () => BurkeOracle = createBurkeOracle,
   anamnesisOracleFactory: () => AnamnesisOracle = createAnamnesisOracle,
   clusterOracleFactory: () => BurkeClusterOracle = createBurkeClusterOracle,
+  startOracleFactory: () => StartOracle = createStartOracle,
 ): Promise<
   | { ok: true; job: GenerationJobDto }
   | { ok: false; status: number; error: string }
@@ -392,6 +398,7 @@ export async function startWalk(
     oracleFactory,
     anamnesisOracleFactory,
     clusterOracleFactory,
+    startOracleFactory,
     projectId,
     jobId: job.id,
     configuration,
@@ -482,6 +489,7 @@ async function executeWalkJob(options: {
   oracleFactory: () => BurkeOracle;
   anamnesisOracleFactory: () => AnamnesisOracle;
   clusterOracleFactory: () => BurkeClusterOracle;
+  startOracleFactory: () => StartOracle;
   projectId: string;
   jobId: string;
   configuration: ReturnType<typeof walkConfigurationSchema.parse>;
@@ -493,6 +501,7 @@ async function executeWalkJob(options: {
     oracleFactory,
     anamnesisOracleFactory,
     clusterOracleFactory,
+    startOracleFactory,
     projectId,
     jobId,
     configuration,
@@ -544,9 +553,118 @@ async function executeWalkJob(options: {
     await failJob(error instanceof Error ? error.message : String(error));
   }
 
-  async function resolveStart(bundle: GatewayBundle): Promise<string> {
+  /**
+   * The seed material the current mode carries. This is what an
+   * LLM-determined start reasons from, so each mode contributes the text
+   * that actually states what the walk is for — not its numeric parameters.
+   */
+  function modeSeedInfo(): string {
+    const parts: string[] = [];
+    switch (configuration.walkMode) {
+      case "BURKE":
+        parts.push(configuration.burke.seedText, configuration.burke.priming);
+        break;
+      case "ANAMNETIC":
+        parts.push(
+          configuration.anamnesis.terminalSentence,
+          configuration.anamnesis.intent,
+        );
+        break;
+      case "BURKECLUSTER":
+        parts.push(
+          configuration.burkeCluster.seedText,
+          configuration.burkeCluster.attentionProgram,
+        );
+        break;
+      default:
+        parts.push(configuration.pathDescription);
+    }
+    return parts.map((p) => p.trim()).filter((p) => p.length > 0).join("\n");
+  }
+
+  /**
+   * An LLM-determined start. Candidates come from search, so the oracle
+   * chooses among pages that demonstrably exist, and a title it names that
+   * is not on the list is refused rather than trusted — the walk fails
+   * instead of beginning at a page nobody verified.
+   */
+  async function chooseStartWithOracle(bundle: GatewayBundle): Promise<string> {
+    const seedInfo = modeSeedInfo();
+    const guidance = configuration.start.value.trim();
+    if (seedInfo.length === 0 && guidance.length === 0) {
+      throw new Error(
+        "An LLM-determined start needs something to go on — give this mode its seed text, or describe what to look for in Start value",
+      );
+    }
+    if (!bundle.wikipedia.searchTitles) {
+      throw new Error(
+        "An LLM-determined start needs full-text search, which this gateway does not provide",
+      );
+    }
+
+    const titles = new Set<string>();
+    for (const phrase of [guidance, seedInfo].filter((p) => p.length > 0)) {
+      for (const title of await bundle.wikipedia.searchTitles(phrase, 8)) {
+        titles.add(title);
+      }
+    }
+    const infos = await bundle.wikipedia.getArticleInfos([...titles].slice(0, 20));
+    const candidates: Array<{ title: string; summary: string }> = [];
+    for (const [, info] of infos) {
+      if (info.missing || info.isDisambiguation || info.summary.length === 0) {
+        continue;
+      }
+      candidates.push({ title: info.title, summary: info.summary.slice(0, 400) });
+    }
+    if (candidates.length === 0) {
+      throw new Error(
+        `No Wikipedia pages could be found to start from for "${(guidance || seedInfo).slice(0, 80)}"`,
+      );
+    }
+
+    const selection = await startOracleFactory().chooseStart({
+      seedInfo,
+      guidance,
+      candidates,
+    });
+    if (!candidates.some((c) => c.title === selection.title)) {
+      throw new Error(
+        `The model chose "${selection.title}" to start from, which was not one of the candidate pages`,
+      );
+    }
+    await db.generationJob.update({
+      where: { id: jobId },
+      data: { currentStep: `Start chosen: ${selection.title} — ${selection.reason}` },
+    });
+    return selection.title;
+  }
+
+  /**
+   * The entry article for modes that walk from one. `fallbackTopic` is the
+   * mode's own seed text, searched when no start was specified — a Burke or
+   * anamnetic walk with an unset start begins from what it is about, not
+   * from a random article.
+   */
+  async function resolveStart(
+    bundle: GatewayBundle,
+    fallbackTopic = "",
+  ): Promise<string> {
     if (pinnedStartTitle) return pinnedStartTitle;
-    return (await bundle.wikipedia.resolveStart(configuration.start)).title;
+    // Destructured so narrowing away "LLM" leaves a kind the gateway accepts.
+    const { kind, value } = configuration.start;
+    if (kind === "LLM") return chooseStartWithOracle(bundle);
+    if (
+      (kind === "RANDOM" || value.trim().length === 0) &&
+      fallbackTopic.trim().length > 0
+    ) {
+      return (
+        await bundle.wikipedia.resolveStart({
+          kind: "TOPIC",
+          value: fallbackTopic,
+        })
+      ).title;
+    }
+    return (await bundle.wikipedia.resolveStart({ kind, value })).title;
   }
 
   function engineConfig() {
@@ -641,16 +759,7 @@ async function executeWalkJob(options: {
 
     // Entry article: the configured start, except RANDOM, which for a Burke
     // walk means "search from the seed text itself".
-    const startTitle =
-      pinnedStartTitle ??
-      (
-        await bundle.wikipedia.resolveStart(
-          configuration.start.kind === "RANDOM" ||
-            configuration.start.value.trim().length === 0
-            ? { kind: "TOPIC", value: configuration.burke.seedText }
-            : configuration.start,
-        )
-      ).title;
+    const startTitle = await resolveStart(bundle, configuration.burke.seedText);
 
     const result = await runBurkeWalk({
       wikipedia: bundle.wikipedia,
@@ -783,16 +892,7 @@ async function executeWalkJob(options: {
     // The entry article: the configured start, or — since the walk is
     // defined by its ending rather than its beginning — a search from the
     // terminal sentence itself.
-    const startTitle =
-      pinnedStartTitle ??
-      (
-        await bundle.wikipedia.resolveStart(
-          configuration.start.kind === "RANDOM" ||
-            configuration.start.value.trim().length === 0
-            ? { kind: "TOPIC", value: sentence }
-            : configuration.start,
-        )
-      ).title;
+    const startTitle = await resolveStart(bundle, sentence);
 
     const result = await runAnamnesisWalk({
       wikipedia: bundle.wikipedia,
@@ -931,12 +1031,22 @@ async function executeWalkJob(options: {
     // seed — unless a start was named, or a same-seed regeneration has one
     // to reproduce, in which case that page is pinned and the oracle builds
     // the seed region around it.
+    // RANDOM here means "unspecified": the seed region resolution chooses
+    // the whole region, head included. Every other kind — an LLM-determined
+    // start among them — yields one page, pinned at the head of the region.
+    const { kind: startKind, value: startValue } = configuration.start;
     const pinnedSeedTitle =
       pinnedStartTitle ??
-      (configuration.start.kind !== "RANDOM" &&
-      configuration.start.value.trim().length > 0
-        ? (await bundle.wikipedia.resolveStart(configuration.start)).title
-        : undefined);
+      (startKind === "LLM"
+        ? await chooseStartWithOracle(bundle)
+        : startKind !== "RANDOM" && startValue.trim().length > 0
+          ? (
+              await bundle.wikipedia.resolveStart({
+                kind: startKind,
+                value: startValue,
+              })
+            ).title
+          : undefined);
 
     const result = await runBurkeClusterWalk({
       wikipedia: bundle.wikipedia,

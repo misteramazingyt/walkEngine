@@ -73,8 +73,19 @@ export const PROJECT_STATUSES = [
 ] as const;
 export type WalkProjectStatus = (typeof PROJECT_STATUSES)[number];
 
-export const START_KINDS = ["TITLE", "URL", "TOPIC", "RANDOM"] as const;
+export const START_KINDS = ["TITLE", "URL", "TOPIC", "RANDOM", "LLM"] as const;
 export type StartKind = (typeof START_KINDS)[number];
+
+/** The kinds a gateway can resolve without judgment. LLM is not one. */
+export type MechanicalStartKind = Exclude<StartKind, "LLM">;
+
+export const START_KIND_LABELS: Record<StartKind, string> = {
+  TITLE: "Exact article title",
+  URL: "Wikipedia URL",
+  TOPIC: "Free-text topic",
+  RANDOM: "Random article",
+  LLM: "LLM-determined from seed",
+};
 
 export const ENDPOINT_STRATEGIES = [
   "WALK_FINAL",

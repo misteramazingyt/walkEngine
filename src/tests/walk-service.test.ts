@@ -8,6 +8,7 @@ import { createPrismaClient } from "@/server/db";
 import { createProject } from "@/server/projects";
 import { chooseCandidateWalk, getWalk, startWalk } from "@/server/walks";
 import { FixtureWikipediaGateway } from "@/integrations/wikipedia/fixture-gateway";
+import { FixtureStartOracle } from "@/integrations/llm/fixture-start-oracle";
 import { RequestBudget } from "@/domain/walk/types";
 import type { GatewayBundle } from "@/server/walk-gateway-factory";
 import { walkConfigurationSchema } from "@/schemas/walk-configuration";
@@ -287,6 +288,99 @@ describe("walk service", () => {
     const walk = await getWalk(project.id, db);
     expect(walk.latestJob?.status).toBe("FAILED");
     expect(walk.latestJob?.error).toMatch(/seed/i);
+  });
+
+  it("lets an oracle choose the start of an otherwise deterministic walk", async () => {
+    const project = await createProject(
+      {
+        title: "LLM-determined start",
+        configuration: walkConfigurationSchema.parse({
+          seed: "llm-start",
+          walkLength: 4,
+          branchFactor: 5,
+          minArticleLength: 500,
+          pathDescription: "the minting of standardized coinage",
+          start: { kind: "LLM", value: "" },
+        }),
+      },
+      db,
+    );
+
+    await startWalk(
+      project.id,
+      { mode: "fresh" },
+      db,
+      fixtureFactory,
+      undefined,
+      undefined,
+      undefined,
+      () => new FixtureStartOracle("Coinage"),
+    );
+    await waitForJobSettled(project.id);
+
+    const { sourceNodes, latestJob } = await getWalk(project.id, db);
+    expect(latestJob?.status).toBe("COMPLETE");
+    expect(sourceNodes[0].title).toBe("Coinage");
+  });
+
+  it("refuses a start the oracle named that was not among the candidates", async () => {
+    const project = await createProject(
+      {
+        title: "Off-list start",
+        configuration: walkConfigurationSchema.parse({
+          seed: "llm-start-offlist",
+          pathDescription: "the minting of standardized coinage",
+          start: { kind: "LLM", value: "" },
+        }),
+      },
+      db,
+    );
+
+    await startWalk(
+      project.id,
+      { mode: "fresh" },
+      db,
+      fixtureFactory,
+      undefined,
+      undefined,
+      undefined,
+      () => new FixtureStartOracle("A Page That Does Not Exist"),
+    );
+    await waitForJobSettled(project.id);
+
+    const { latestJob, sourceNodes } = await getWalk(project.id, db);
+    expect(latestJob?.status).toBe("FAILED");
+    expect(latestJob?.error).toMatch(/not one of the candidate pages/);
+    expect(sourceNodes).toHaveLength(0);
+  });
+
+  it("fails an LLM start that has no seed material to reason from", async () => {
+    const project = await createProject(
+      {
+        title: "Nothing to go on",
+        configuration: walkConfigurationSchema.parse({
+          seed: "llm-start-empty",
+          start: { kind: "LLM", value: "" },
+        }),
+      },
+      db,
+    );
+
+    await startWalk(
+      project.id,
+      { mode: "fresh" },
+      db,
+      fixtureFactory,
+      undefined,
+      undefined,
+      undefined,
+      () => new FixtureStartOracle(),
+    );
+    await waitForJobSettled(project.id);
+
+    const { latestJob } = await getWalk(project.id, db);
+    expect(latestJob?.status).toBe("FAILED");
+    expect(latestJob?.error).toMatch(/needs something to go on/);
   });
 
   it("marks the job FAILED when the start cannot be resolved", async () => {

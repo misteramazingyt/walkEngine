@@ -5,6 +5,8 @@ import {
   CONSCIOUSNESS_LABELS,
   CRITERIA,
   CRITERION_LABELS,
+  START_KINDS,
+  START_KIND_LABELS,
 } from "@/domain/enums";
 import { LLM_ONLY_CRITERIA } from "@/domain/walk/features";
 import { MOTIF_PRESETS } from "@/domain/motifs/presets";
@@ -18,6 +20,21 @@ import {
   RetroSelect,
   RetroTextarea,
 } from "@/components/ui/retro";
+
+// Which text an LLM-determined start reasons from — named per mode so the
+// field says what it will actually read, rather than "the seed" generically.
+function seedSourceLabel(mode: WalkConfiguration["walkMode"]): string {
+  switch (mode) {
+    case "BURKE":
+      return "The Burke seed and priming";
+    case "ANAMNETIC":
+      return "The terminal sentence";
+    case "BURKECLUSTER":
+      return "The seed and attention program";
+    default:
+      return "The path description";
+  }
+}
 
 // Controlled form over the full WalkConfiguration. Every field persists via
 // PATCH /api/projects/:id (the Save button); actions that belong to later
@@ -85,9 +102,23 @@ export function WalkConfigurationForm({
             <RetroSelect
               id="walk-mode"
               value={value.walkMode}
-              onChange={(e) =>
-                set("walkMode", e.target.value as WalkConfiguration["walkMode"])
-              }
+              onChange={(e) => {
+                const walkMode = e.target
+                  .value as WalkConfiguration["walkMode"];
+                // The seeded modes carry text that says what the walk is
+                // for, so an untouched "Random article" start is almost
+                // never what was meant there — hand it to the model
+                // instead. An explicit start the user typed is left alone.
+                const seeded =
+                  walkMode === "BURKE" ||
+                  walkMode === "ANAMNETIC" ||
+                  walkMode === "BURKECLUSTER";
+                const start =
+                  seeded && value.start.kind === "RANDOM"
+                    ? { ...value.start, kind: "LLM" as const }
+                    : value.start;
+                onChange({ ...value, walkMode, start });
+              }}
             >
               <option value="RANDOM">Random</option>
               <option value="CRITERIOLOGICAL">Criteriological</option>
@@ -137,10 +168,11 @@ export function WalkConfigurationForm({
                 })
               }
             >
-              <option value="TITLE">Exact article title</option>
-              <option value="URL">Wikipedia URL</option>
-              <option value="TOPIC">Free-text topic</option>
-              <option value="RANDOM">Random article</option>
+              {START_KINDS.map((kind) => (
+                <option key={kind} value={kind}>
+                  {START_KIND_LABELS[kind]}
+                </option>
+              ))}
             </RetroSelect>
           </FieldRow>
           <FieldRow label="Start value" htmlFor="start-value">
@@ -152,13 +184,22 @@ export function WalkConfigurationForm({
               placeholder={
                 value.start.kind === "RANDOM"
                   ? "Chosen by seeded chance"
-                  : "e.g. Touchstone (assaying tool)"
+                  : value.start.kind === "LLM"
+                    ? "optional — what to look for"
+                    : "e.g. Touchstone (assaying tool)"
               }
               onChange={(e) =>
                 set("start", { ...value.start, value: e.target.value })
               }
             />
           </FieldRow>
+          {value.start.kind === "LLM" && (
+            <p className="px-1 pb-1 text-[11px] text-ink-dim">
+              {seedSourceLabel(value.walkMode)} is searched, and the model
+              picks the entry article from real pages found — never a title of
+              its own. Needs a GEMINI_API_KEY, or fixture mode.
+            </p>
+          )}
           <FieldRow label="Endpoint strategy" htmlFor="endpoint-strategy">
             <RetroSelect
               id="endpoint-strategy"
