@@ -398,6 +398,46 @@ export function WalkConfigurationForm({
                 />
               </FieldRow>
             </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <RetroCheckbox
+                label="Require motivated narrative transitions"
+                title="No node may be accepted unless a bridge can be written that stands without mentioning the seed"
+                checked={value.burke.requireMotivatedTransitions}
+                onChange={(e) =>
+                  setBurke("requireMotivatedTransitions", e.target.checked)
+                }
+              />
+              <RetroCheckbox
+                label="Allow productive detours"
+                title="Permit nodes that address no open question, provided they open one that returns to the thread"
+                checked={value.burke.allowProductiveDetours}
+                onChange={(e) =>
+                  setBurke("allowProductiveDetours", e.target.checked)
+                }
+              />
+              <label
+                htmlFor="burke-analogy"
+                className="flex items-center gap-2 text-[12px]"
+                title="Low: documented dependencies, institutional inheritance, direct problem–solution relations. High: morphological and affective correspondences, clearly labeled."
+              >
+                Analogy tolerance
+                <input
+                  id="burke-analogy"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  className="w-28 accent-(--color-accent)"
+                  value={value.burke.analogyTolerance}
+                  onChange={(e) =>
+                    setBurke("analogyTolerance", Number(e.target.value))
+                  }
+                />
+                <span className="w-8 text-[11px] text-ink-dim">
+                  {value.burke.analogyTolerance.toFixed(2)}
+                </span>
+              </label>
+            </div>
           </GroupBox>
         )}
 

@@ -154,15 +154,18 @@ model CandidateWalk {
 // and checkpoints are stored fully so the run is reviewable without any
 // LLM call; visited pages also become SourceNodes for the flowchart.
 model BurkeRun {
-  id                 String   @id @default(cuid())
-  projectId          String
-  project            WalkProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  salience           String // JSON: SalienceWeight[]
-  notes              String // JSON: BurkeNote[]
-  checkpoints        String // JSON: ElasticityCheckpoint[]
-  finalRedescription String
-  endReason          String
-  createdAt          DateTime @default(now())
+  id                String   @id @default(cuid())
+  projectId         String
+  project           WalkProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  storyState        String // JSON: StoryState (theory versions, questions, mystery…)
+  notes             String // JSON: BurkeNote[]
+  checkpoints       String // JSON: TheoryCheckpoint[]
+  coherenceReports  String   @default("[]") // JSON: CoherenceReport[]
+  narrative         String? // JSON: BurkeNarrative
+  rejectedRoutes    String   @default("[]") // JSON: {title, reason}[]
+  backtrackCount    Int      @default(0)
+  endReason         String
+  createdAt         DateTime @default(now())
 
   @@index([projectId, createdAt])
 }

@@ -197,6 +197,18 @@ export class WikipediaGateway implements WalkGateway {
     );
   }
 
+  /** Full-text search — candidate generation from a navigation question. */
+  async searchTitles(phrase: string, limit: number): Promise<string[]> {
+    const body = (await this.apiGet({
+      action: "query",
+      list: "search",
+      srsearch: phrase,
+      srnamespace: "0",
+      srlimit: String(Math.max(1, Math.min(limit, 20))),
+    })) as { query?: { search?: Array<{ title: string }> } };
+    return (body.query?.search ?? []).map((s) => s.title);
+  }
+
   /** Resolve a start specification to a canonical article title. */
   async resolveStart(start: {
     kind: "TITLE" | "URL" | "TOPIC" | "RANDOM";

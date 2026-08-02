@@ -230,7 +230,7 @@ describe("walk service", () => {
       { mode: "fresh" },
       db,
       fixtureFactory,
-      () => new FixtureBurkeOracle({ stabilizeAfterCheckpoint: 1 }),
+      () => new FixtureBurkeOracle(),
     );
     await waitForJobSettled(project.id);
 
@@ -239,13 +239,27 @@ describe("walk service", () => {
     expect(walk.sourceNodes.length).toBeGreaterThan(1);
     expect(walk.burkeRun).not.toBeNull();
     expect(walk.burkeRun?.notes.length).toBe(walk.sourceNodes.length - 1);
-    expect(walk.burkeRun?.salience.length).toBeGreaterThanOrEqual(3);
-    expect(walk.burkeRun?.finalRedescription.length).toBeGreaterThan(0);
+
+    // The story state round-trips: theory, its versions, and the questions.
+    const state = walk.burkeRun!.storyState;
+    expect(state.currentTheory).not.toBe(state.theoryVersions[0].theory);
+    expect(state.unresolvedQuestions.length).toBeGreaterThan(0);
+    expect(state.curiosityProgram.mattersOfConcern.length).toBeGreaterThan(0);
+    expect(walk.burkeRun?.narrative?.pivots.length).toBe(
+      walk.burkeRun?.notes.length,
+    );
+
     for (const note of walk.burkeRun?.notes ?? []) {
-      expect(note.observation).toBeTruthy();
-      expect(note.changedUnderstanding).toBeTruthy();
-      expect(note.returnToSeed).toBeTruthy();
+      expect(note.navigationQuestion).toBeTruthy();
+      expect(note.claimEstablishedOrChallenged).toBeTruthy();
+      expect(note.theoryBefore).not.toBe(note.theoryAfter);
     }
+
+    // Candidate assessments persist as the per-node audit trail.
+    const scored = walk.sourceNodes[1].outgoingLinks;
+    expect(scored.some((c) => c.eligible && c.why && c.why.length > 0)).toBe(
+      true,
+    );
   });
 
   it("BURKE mode without a seed fails loudly", async () => {

@@ -447,6 +447,18 @@ export class FixtureWikipediaGateway implements WalkGateway, EntityFactsGateway 
     return this.graph.get(title)?.categories ?? [];
   }
 
+  async searchTitles(phrase: string, limit: number): Promise<string[]> {
+    this.spend();
+    const needle = phrase.toLowerCase();
+    const words = needle.split(/[^a-z0-9]+/).filter((w) => w.length > 3);
+    const hits: string[] = [];
+    for (const article of this.graph.values()) {
+      const haystack = `${article.title} ${article.summary}`.toLowerCase();
+      if (words.some((w) => haystack.includes(w))) hits.push(article.title);
+    }
+    return hits.slice(0, limit);
+  }
+
   async resolveStart(start: {
     kind: "TITLE" | "URL" | "TOPIC" | "RANDOM";
     value: string;

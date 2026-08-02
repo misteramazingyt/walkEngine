@@ -165,6 +165,73 @@ is unchanged; Phase 4 orchestration will ride the same provider.
 - Note: Burke walks are NOT seed-reproducible even at temperature 0 — the
   oracle is a live model. The rng governs candidate pool sampling only.
 
+### Phase 3.6 — BurkeWalker revision: story-state control  ✅ (user-requested)
+
+The first BurkeWalker behaved as a thematic-association engine: it extracted
+weighted concepts from the priming, scored pages by semantic fit, and forced
+every page into a return-to-seed reading. That produces forced resemblances,
+not a cumulative explanatory thread. The revision inverts the control flow.
+
+**The governing instruction:** the walker selects the next page by asking
+what the current story cannot explain — never by asking what resembles the
+seed.
+
+- [x] **StoryState** — persistent, falsifiable, evolving: current theory and
+      its version history (with change type, what changed, why), unresolved
+      questions (typed, prioritized, with status), established claims,
+      rejected hypotheses, unexplained remainder, current tension, return
+      paths, mystery state, saturation estimates
+- [x] **Structured CuriosityProgram** replaces weighted keywords: matters of
+      concern, preferred mechanisms and historical relations, desired
+      tensions, comparison dimensions, and `avoidPatterns` — the specific
+      weak analogies this seed will attract
+- [x] **Diagnostic question selection**: each step diagnoses the story's most
+      consequential deficiency, chooses the Burke question that addresses it
+      (conditionally, never by rotation), and phrases one precise navigation
+      question — all BEFORE any candidate is collected
+- [x] **Candidate generation separated from selection**: outgoing links plus
+      Wikipedia search over question-derived phrases (generation seeks
+      possibilities; selection seeks explanatory gain)
+- [x] **Explanatory-gain ranking** with the brief's weight hierarchy;
+      lexical similarity without gain, analogy-only, redundancy, generic
+      abstraction, sensational detour, and seed-forcing are all penalties.
+      Totals are computed by the engine, not the model. An analogy claiming
+      no carrier is auto-penalized to 0.9
+- [x] **Acceptance gate**: six questions answered explicitly; a page is
+      refused unless at least one substantive criterion holds. A plausible
+      return-to-seed sentence is never sufficient
+- [x] **Narrative bridges**: each transition names what the previous node
+      failed to explain and why this one follows — and must stand without
+      mentioning the seed (toggleable requirement)
+- [x] **Contrastive theory revision** after every accepted node, with banned
+      stock phrases and honest change classification
+- [x] **Coherence tests + backtracking**: snapshots restored on low-gain
+      streaks, incoherent threads, or sensational hijacks; dead branches
+      remembered and never re-attempted
+- [x] **Theory checkpoints** replace summary elasticity; two consecutive
+      flat checkpoints end the walk at saturation
+- [x] **Stop conditions** ordered by authority: redescription achieved,
+      questions resolved, saturation, no candidate passes the gate, paths
+      exhausted — the page cap is last and labeled a safety net
+- [x] **Narrative output** built from theory versions and motivated pivots,
+      with an evidence ledger distinguishing documented transmission,
+      precondition, institutional relation, shared condition, structural
+      analogy, and speculative resonance
+- [x] **UI** exposes the reasoning: current theory, tension, open questions
+      with priorities, mystery/coherence/saturation/analogy-share meters,
+      backtrack count, per-node bridges and evidence labels, rejected routes
+      with reasons, plus the three new controls
+
+Assumptions recorded during implementation:
+- Coherence tests run every 3 accepted nodes; low-gain streak is 2; two flat
+  checkpoints signal saturation. These thresholds are constants in
+  `engine.ts`, not yet user-configurable.
+- Candidate generation uses outgoing links + search. Incoming links,
+  lead-section entity extraction, and category neighbors are viable
+  additions but were left out to bound request cost per step.
+- Burke runs remain non-reproducible from a seed: a live model makes every
+  judgment. The rng governs candidate-pool sampling only.
+
 ### Phase 4 — significance orchestration
 
 - Candidate-node dossiers (fetched facts / inferred metadata / LLM

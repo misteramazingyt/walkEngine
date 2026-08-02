@@ -77,6 +77,11 @@ export interface WalkGateway {
   getArticleInfos(titles: string[]): Promise<Map<string, ArticleInfo>>;
   /** Non-hidden categories for one article. */
   getCategories(title: string): Promise<string[]>;
+  /**
+   * Optional: full-text search, used by the Burke walker to generate
+   * candidates from a navigation question rather than from adjacency alone.
+   */
+  searchTitles?(phrase: string, limit: number): Promise<string[]>;
   /** HTTP requests spent so far (cache hits are free). */
   requestsUsed(): number;
 }

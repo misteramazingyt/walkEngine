@@ -3,10 +3,12 @@ import { createRng } from "@/domain/walk/prng";
 import { runRandomWalk } from "@/domain/walk/random-walk";
 import { runBurkeWalk } from "@/domain/burke/engine";
 import type {
+  BurkeNarrative,
   BurkeNote,
   BurkeOracle,
-  ElasticityCheckpoint,
-  SalienceWeight,
+  CoherenceReport,
+  StoryState,
+  TheoryCheckpoint,
 } from "@/domain/burke/types";
 import { createBurkeOracle } from "@/server/burke-oracle-factory";
 import {
@@ -60,10 +62,13 @@ export interface CandidateWalkDto {
 
 export interface BurkeRunDto {
   id: string;
-  salience: SalienceWeight[];
+  storyState: StoryState;
   notes: BurkeNote[];
-  checkpoints: ElasticityCheckpoint[];
-  finalRedescription: string;
+  checkpoints: TheoryCheckpoint[];
+  coherenceReports: CoherenceReport[];
+  narrative: BurkeNarrative | null;
+  rejectedRoutes: Array<{ title: string; reason: string }>;
+  backtrackCount: number;
   endReason: string;
   createdAt: string;
 }
@@ -197,10 +202,20 @@ export async function getWalk(projectId: string, db: PrismaClient = prisma) {
   const burke: BurkeRunDto | null = burkeRun
     ? {
         id: burkeRun.id,
-        salience: JSON.parse(burkeRun.salience) as SalienceWeight[],
+        storyState: JSON.parse(burkeRun.storyState) as StoryState,
         notes: JSON.parse(burkeRun.notes) as BurkeNote[],
-        checkpoints: JSON.parse(burkeRun.checkpoints) as ElasticityCheckpoint[],
-        finalRedescription: burkeRun.finalRedescription,
+        checkpoints: JSON.parse(burkeRun.checkpoints) as TheoryCheckpoint[],
+        coherenceReports: JSON.parse(
+          burkeRun.coherenceReports,
+        ) as CoherenceReport[],
+        narrative: burkeRun.narrative
+          ? (JSON.parse(burkeRun.narrative) as BurkeNarrative)
+          : null,
+        rejectedRoutes: JSON.parse(burkeRun.rejectedRoutes) as Array<{
+          title: string;
+          reason: string;
+        }>,
+        backtrackCount: burkeRun.backtrackCount,
         endReason: burkeRun.endReason,
         createdAt: burkeRun.createdAt.toISOString(),
       }
@@ -534,11 +549,17 @@ async function executeWalkJob(options: {
         },
         priming: configuration.burke.priming,
         motif: configuration.burke.motif,
-        elasticityInterval: configuration.burke.elasticityInterval,
+        historicalConsciousness: configuration.historicalConsciousness,
+        endpointStrategy: configuration.endpointStrategy,
+        checkpointInterval: configuration.burke.elasticityInterval,
         maxPages: configuration.burke.maxPages,
         branchFactor: configuration.branchFactor,
         excludeMetaPages: configuration.excludeMetaPages,
         allowRevisits: configuration.allowRevisits,
+        requireMotivatedTransitions:
+          configuration.burke.requireMotivatedTransitions,
+        analogyTolerance: configuration.burke.analogyTolerance,
+        allowProductiveDetours: configuration.burke.allowProductiveDetours,
       },
       startTitle,
       onProgress: async (p) => {
@@ -571,17 +592,26 @@ async function executeWalkJob(options: {
             url: node.info.url,
             summary: node.info.summary,
             categories: JSON.stringify(node.categories),
-            outgoingLinks: JSON.stringify(
-              node.judgments.map((j) => ({
-                title: j.title,
-                eligible: !j.discarded,
-                exclusionReason: j.discarded
-                  ? `discarded: ${j.rationale}`
-                  : undefined,
-                score: j.returnPotential,
-                why: [j.rationale],
+            // Candidate assessments become the node's audit trail: every
+            // page considered, its component scores, and why it lost.
+            outgoingLinks: JSON.stringify([
+              ...node.assessments.map((a) => ({
+                title: a.title,
+                eligible: true,
+                score: a.total,
+                features: a.scores as unknown as Record<string, number>,
+                why: [
+                  `${a.relationType}${a.analogyCarrier ? ` via ${a.analogyCarrier}` : ""}`,
+                  a.rationale,
+                  `predicted revision: ${a.predictedTheoryRevision}`,
+                ],
               })),
-            ),
+              ...node.rejections.map((r) => ({
+                title: r.title,
+                eligible: false,
+                exclusionReason: r.reason,
+              })),
+            ]),
             visitIndex: node.visitIndex,
           },
         });
@@ -595,10 +625,15 @@ async function executeWalkJob(options: {
       await tx.burkeRun.create({
         data: {
           projectId,
-          salience: JSON.stringify(result.salience),
+          storyState: JSON.stringify(result.storyState),
           notes: JSON.stringify(result.notes),
           checkpoints: JSON.stringify(result.checkpoints),
-          finalRedescription: result.finalRedescription,
+          coherenceReports: JSON.stringify(result.coherenceReports),
+          narrative: result.narrative
+            ? JSON.stringify(result.narrative)
+            : null,
+          rejectedRoutes: JSON.stringify(result.rejectedRoutes),
+          backtrackCount: result.backtrackCount,
           endReason: result.endReason,
         },
       });

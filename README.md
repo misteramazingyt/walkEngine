@@ -23,16 +23,21 @@ criteriological walk + BurkeWalker (Gemini-powered).**
 
 New in Phase 3.5:
 
-- **Burke walker mode** — the walker carries a *curiosity program*: a seed
-  (your lived object or question), a natural-language priming that the LLM
-  converts into a salience field, and a six-question grammar
-  (precondition / problem / selection / transformation / analogy /
-  recoding). Candidates are judged on six move criteria; pages with no
-  *return potential* to the seed are discarded. Every step writes a
-  four-field note; every N pages a three-sentence story checkpoint tests
-  narrative elasticity. The walk stops on redescription or explanatory
-  saturation — the page cap is only a safety net. The right panel becomes
-  the walker's journal
+- **Burke walker mode** — the walker maintains a provisional, falsifiable,
+  evolving **theory of your seed**, and selects each next page by asking
+  *what the current story cannot explain* — never what resembles the seed.
+  Each step diagnoses the most consequential deficiency, chooses the Burke
+  question that addresses it (precondition / problem / selection /
+  transformation / analogy / recoding), and phrases a precise navigation
+  question **before** any candidate is collected. Candidates are then ranked
+  by explanatory gain — with penalties for lexical resemblance, carrier-less
+  analogy, redundancy, generic abstraction, sensational detours, and
+  seed-forcing — and must pass an acceptance gate and yield a narrative
+  bridge that stands without mentioning the seed. Every accepted node
+  rewrites the theory contrastively. Coherence tests and backtracking pull
+  the walk out of dead branches; theory checkpoints end it at saturation;
+  the real stopping condition is redescription. The right panel exposes the
+  whole apparatus
 - **Motif modules** (Authenticity under Mechanization; Authority) —
   reusable ways of becoming curious, not topics
 - **Gemini provider** (`GEMINI_API_KEY`, optional `GEMINI_MODEL`, default

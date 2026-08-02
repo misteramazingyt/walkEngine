@@ -12,7 +12,7 @@ export function createBurkeOracle(): BurkeOracle {
     process.env.LLM_MODE === "fixture" ||
     process.env.WIKIPEDIA_MODE === "fixture"
   ) {
-    return new FixtureBurkeOracle({ stabilizeAfterCheckpoint: 2 });
+    return new FixtureBurkeOracle();
   }
   return new LlmBurkeOracle(new GeminiProvider());
 }

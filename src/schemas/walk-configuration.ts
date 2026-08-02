@@ -90,10 +90,16 @@ export const walkConfigurationSchema = z.object({
       priming: z.string().default(""),
       /** Name of a preset motif module, or "" for none. */
       motif: z.string().default(""),
-      /** Elasticity checkpoint cadence in pages (Burke's 5–10 rule). */
+      /** Theory-checkpoint cadence in accepted nodes (Burke's 5–10 rule). */
       elasticityInterval: z.number().int().min(3).max(20).default(6),
       /** Safety cap — the real stopping condition is redescription. */
       maxPages: z.number().int().min(3).max(40).default(12),
+      /** No node may be accepted without a credible narrative bridge. */
+      requireMotivatedTransitions: z.boolean().default(true),
+      /** 0 = documented dependencies only; 1 = morphology allowed (labeled). */
+      analogyTolerance: z.number().min(0).max(1).default(0.25),
+      /** Permit detours that open a question returning to the thread. */
+      allowProductiveDetours: z.boolean().default(false),
     })
     .default({
       seedKind: "OBJECT",
@@ -102,6 +108,9 @@ export const walkConfigurationSchema = z.object({
       motif: "",
       elasticityInterval: 6,
       maxPages: 12,
+      requireMotivatedTransitions: true,
+      analogyTolerance: 0.25,
+      allowProductiveDetours: false,
     }),
 });
 

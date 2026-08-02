@@ -218,7 +218,9 @@ export default function ProjectWorkbenchPage({
           </div>
         </Panel>
         <Panel
-          title={walkQuery.data?.burkeRun ? "Burke journal" : "Draft 0"}
+          title={
+            walkQuery.data?.burkeRun ? "Burke walker — story state" : "Draft 0"
+          }
           className="h-[50vh] min-w-0 shrink-0 lg:h-auto lg:min-h-0 lg:flex-[2] lg:shrink"
         >
           <DraftPanel burkeRun={walkQuery.data?.burkeRun ?? null} />
