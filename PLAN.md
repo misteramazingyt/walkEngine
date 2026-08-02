@@ -136,16 +136,18 @@ segmentation, or user edits.
 
 ## Remaining risks (updated per phase)
 
-- The Docker image was validated by executing its exact build and boot steps
+- The Docker boot sequence was validated by executing its exact steps
   (prisma generate, next build, migrate deploy against a fresh volume path,
-  `next start -H 0.0.0.0`, kill-and-restart persistence check) — but a full
-  `docker build` could not run in the development sandbox because its network
-  policy denies Docker Hub's CDN. Run `docker build` once in CI or on the
-  target host to confirm; the single-stage Dockerfile has no tracing edge
-  cases that would behave differently in-container.
-- The single-stage image is large (full node_modules). Switching to Next.js
+  `next start -H 0.0.0.0`, kill-and-restart persistence check); the image
+  itself builds on Fly's Depot builders. The builder stage carries
+  python3/make/g++ because better-sqlite3 fell back to source compilation
+  there (its prebuilt-binary download failed on the Depot builder).
+- The runtime image still ships full node_modules. Switching to Next.js
   standalone output would shrink it considerably; deferred until the native
   better-sqlite3 dependency-tracing path is worth verifying.
+- Deploys go through Fly's GitHub launcher app (`walkengine-wk5fgq`), which
+  deploys on push to main. Development happens on the phase branch; merging
+  to main is the deploy action.
 
 - `npm audit` reports 3 high advisories, all transitive inside
   `next@16.2.12` (its pinned `postcss` and `sharp`); no fix without changing

@@ -71,19 +71,16 @@ desktop home screen from the browser menu.
 
 ### Fly.io (continuous deploy from GitHub)
 
-The repo ships `fly.toml` and `.github/workflows/fly-deploy.yml`. One-time
-setup, no local CLI required:
+The app is deployed through Fly's **Launch an App from GitHub** flow, which
+builds the repository Dockerfile on Fly's builders and redeploys on push to
+`main`. `fly.toml` carries the app name (`walkengine-wk5fgq`), the `/data`
+volume mount, forced HTTPS, and a health check on `/api/projects`. In the
+launcher, leave env vars, Postgres, working directory, and config path at
+their defaults — the fly.toml is at the repo root and SQLite needs no
+managed database.
 
-1. Create a Fly deploy token (Fly dashboard → Tokens, or `fly tokens create deploy`).
-2. Add it as a GitHub Actions secret named `FLY_API_TOKEN`
-   (repo → Settings → Secrets and variables → Actions).
-
-Every push to a deploy branch then builds the Dockerfile on Fly's builders,
-creates the app and the `/data` volume on first run, and deploys a single
-machine (`--ha=false` — required, since two machines would get two separate
-SQLite volumes). The app comes up at `https://<app-name>.fly.dev`. App name
-and region live at the top of `fly.toml` and the workflow's `env` block —
-change both together.
+Keep the app at **exactly one machine** (Machines tab): two machines would
+get two separate SQLite volumes and silently split projects between them.
 
 ### Docker (recommended for self-hosting)
 
