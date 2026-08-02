@@ -69,7 +69,23 @@ fixed three-panel surface on desktop and stacks into a scrolling column on
 phones — and ships a web-app manifest, so it can be installed to a phone or
 desktop home screen from the browser menu.
 
-### Docker (recommended)
+### Fly.io (continuous deploy from GitHub)
+
+The repo ships `fly.toml` and `.github/workflows/fly-deploy.yml`. One-time
+setup, no local CLI required:
+
+1. Create a Fly deploy token (Fly dashboard → Tokens, or `fly tokens create deploy`).
+2. Add it as a GitHub Actions secret named `FLY_API_TOKEN`
+   (repo → Settings → Secrets and variables → Actions).
+
+Every push to a deploy branch then builds the Dockerfile on Fly's builders,
+creates the app and the `/data` volume on first run, and deploys a single
+machine (`--ha=false` — required, since two machines would get two separate
+SQLite volumes). The app comes up at `https://<app-name>.fly.dev`. App name
+and region live at the top of `fly.toml` and the workflow's `env` block —
+change both together.
+
+### Docker (recommended for self-hosting)
 
 ```bash
 docker build -t motif-walk .

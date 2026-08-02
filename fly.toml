@@ -1,0 +1,45 @@
+# Fly.io configuration for MOTIF WALK.
+#
+# The app is a single machine with the SQLite database on a Fly volume
+# mounted at /data. Keep it single-machine (the deploy workflow passes
+# --ha=false): two machines would get two separate volumes and silently
+# split your projects across them.
+#
+# If you change `app` here, change APP_NAME in
+# .github/workflows/fly-deploy.yml to match.
+
+app = "motif-walk-workbench"
+primary_region = "ord"
+
+[build]
+  # Uses the repository Dockerfile.
+
+[env]
+  PORT = "3000"
+  DATABASE_URL = "file:/data/motif-walk.db"
+
+[mounts]
+  source = "motif_walk_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # 0 = the machine sleeps when idle and cold-starts in a few seconds on the
+  # next request; costs almost nothing while idle. Set to 1 for always-on.
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    # Generous grace period: the entrypoint runs prisma migrate deploy
+    # before the server starts listening.
+    grace_period = "30s"
+    method = "GET"
+    path = "/api/projects"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
