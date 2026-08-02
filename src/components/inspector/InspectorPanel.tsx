@@ -41,6 +41,15 @@ export function InspectorPanel({
 
   const eligible = selected.outgoingLinks.filter((c) => c.eligible);
   const excluded = selected.outgoingLinks.filter((c) => !c.eligible);
+  // Criteriological mode: the node's own scoring record sits in the pool it
+  // was chosen from; runner-ups are the other eligible candidates by score.
+  const ownRecord = selected.outgoingLinks.find(
+    (c) => c.title === selected.title && c.eligible,
+  );
+  const runnersUp = eligible
+    .filter((c) => c.title !== selected.title && c.score !== undefined)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    .slice(0, 3);
 
   return (
     <div className="grid gap-x-6 gap-y-2 px-3 py-2 text-[12px] lg:grid-cols-3">
@@ -69,16 +78,41 @@ export function InspectorPanel({
         </p>
       </div>
       <div>
-        <div className="font-bold">Categories (fetched)</div>
+        <div className="font-bold">Facts (fetched)</div>
         <p className="mt-1 text-ink-dim">
+          {selected.entityTypes.length > 0 && (
+            <>Type: {selected.entityTypes.slice(0, 3).join(", ")} · </>
+          )}
+          {selected.dateStart !== null && (
+            <>
+              Era: {selected.dateStart}
+              {selected.dateEnd !== null && selected.dateEnd !== selected.dateStart
+                ? `–${selected.dateEnd}`
+                : ""}{" "}
+              ·{" "}
+            </>
+          )}
           {selected.categories.length > 0
-            ? selected.categories.slice(0, 8).join(" · ")
-            : "none recorded"}
+            ? selected.categories.slice(0, 6).join(" · ")
+            : "no categories recorded"}
         </p>
-        <p className="mt-1 text-[11px] text-ink-dim">
-          The incoming edge records hyperlink adjacency only — it carries no
-          historical warrant until Phase 4 orchestration types it.
-        </p>
+        {ownRecord?.score !== undefined ? (
+          <div className="mt-1">
+            <span className="font-bold">
+              Why this node (score {ownRecord.score.toFixed(3)}):
+            </span>
+            <ul className="mt-0.5 text-[11px] text-ink-dim">
+              {(ownRecord.why ?? []).map((line) => (
+                <li key={line}>· {line}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="mt-1 text-[11px] text-ink-dim">
+            The incoming edge records hyperlink adjacency only — it carries no
+            historical warrant until Phase 4 orchestration types it.
+          </p>
+        )}
       </div>
       <div>
         <div className="font-bold">
@@ -91,9 +125,19 @@ export function InspectorPanel({
           </p>
         ) : (
           <>
-            <p className="mt-1 line-clamp-2 text-ink-dim">
-              {eligible.map((c) => c.title).join(" · ") || "pool not recorded"}
-            </p>
+            {runnersUp.length > 0 ? (
+              <ul className="mt-1 text-[11px] text-ink-dim">
+                {runnersUp.map((c) => (
+                  <li key={c.title}>
+                    · {c.title} (score {(c.score ?? 0).toFixed(3)})
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1 line-clamp-2 text-ink-dim">
+                {eligible.map((c) => c.title).join(" · ") || "pool not recorded"}
+              </p>
+            )}
             {excluded.length > 0 && (
               <p className="mt-1 line-clamp-2 text-[11px] text-ink-dim">
                 Excluded: {excluded.slice(0, 6).map((c) => `${c.title} (${c.exclusionReason})`).join(" · ")}

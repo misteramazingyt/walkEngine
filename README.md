@@ -18,7 +18,26 @@ analogical, and speculative transitions.
 
 ## Status
 
-**Phases 1–2 complete: shell + deterministic Wikipedia random walk.**
+**Phases 1–3 complete: shell + deterministic random walk + criteriological
+walk.**
+
+New in Phase 3:
+
+- **Criteriological mode**: candidates are enriched from Wikidata (entity
+  types, eras, coordinates, sitelinks, documented claim links) and scored
+  deterministically against your sixteen criteria weights, with a repetition
+  penalty against type/century/biography monotony. Greedy, weighted, and
+  exploratory (softmax) sampling
+- **Three candidate paths** per generation, each with path-level scores
+  (documented relations, novelty, diversity, transition variety, concrete
+  carriers, endpoint strength, redundancy) — compare and choose; the chosen
+  path materializes into the flowchart
+- **Why every node**: the inspector shows the chosen node's score breakdown
+  (feature × weight contributions), its runner-ups with scores, and every
+  excluded candidate with its reason
+- Temporal bounds and the popularity cap are live (popularity approximated
+  by Wikidata sitelink count — the tooltip says so); criteria that need
+  historical judgment are marked * and reserved for the Phase 4 LLM rerank
 
 Working now:
 

@@ -31,6 +31,7 @@ model WalkProject {
   narrativeEdges NarrativeEdge[]
   draftSegments  DraftSegment[]
   jobs           GenerationJob[]
+  candidateWalks CandidateWalk[]
 }
 
 // Every visited Wikipedia page, not only nodes retained in the narrative.
@@ -128,6 +129,24 @@ model DraftSegment {
   generationMeta  String? // JSON: { generatedFromNodeIds, generatedFromEdgeIds, promptVersion, model, generatedAt }
 
   @@index([projectId, orderIndex])
+}
+
+// One of the (typically three) candidate paths a criteriological walk
+// produces. Nodes are stored fully enough to materialize SourceNodes on
+// choice without refetching anything.
+model CandidateWalk {
+  id        String   @id @default(cuid())
+  projectId String
+  project   WalkProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  label     String // "A" | "B" | "C"
+  seedUsed  String
+  endReason String
+  pathScore String // JSON: PathScore
+  nodes     String // JSON: persisted EnrichedVisitedNode[]
+  chosen    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
 }
 
 model GenerationJob {

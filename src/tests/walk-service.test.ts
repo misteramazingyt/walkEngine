@@ -6,8 +6,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PrismaClient } from "@/generated/prisma/client";
 import { createPrismaClient } from "@/server/db";
 import { createProject } from "@/server/projects";
-import { getWalk, startWalk } from "@/server/walks";
+import { chooseCandidateWalk, getWalk, startWalk } from "@/server/walks";
 import { FixtureWikipediaGateway } from "@/integrations/wikipedia/fixture-gateway";
+import { RequestBudget } from "@/domain/walk/types";
+import type { GatewayBundle } from "@/server/walk-gateway-factory";
 import { walkConfigurationSchema } from "@/schemas/walk-configuration";
 
 // End-to-end walk service test against a real temp database and the fixture
@@ -17,8 +19,11 @@ import { walkConfigurationSchema } from "@/schemas/walk-configuration";
 let dir: string;
 let db: PrismaClient;
 
-const fixtureFactory = (_language: string, budget: number) =>
-  new FixtureWikipediaGateway(undefined, budget);
+const fixtureFactory = (_language: string, budgetLimit: number): GatewayBundle => {
+  const budget = new RequestBudget(budgetLimit);
+  const fixture = new FixtureWikipediaGateway(undefined, budget);
+  return { wikipedia: fixture, entityFacts: fixture, budget };
+};
 
 beforeAll(() => {
   dir = mkdtempSync(path.join(tmpdir(), "motif-walk-svc-"));
@@ -113,6 +118,86 @@ describe("walk service", () => {
     const result = await startWalk(project.id, { mode: "same-seed" }, db, fixtureFactory);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.status).toBe(409);
+  });
+
+  it("criteriological mode stores three candidate paths, and choosing one materializes it", async () => {
+    const project = await createProject(
+      {
+        title: "Criteriological candidates",
+        configuration: walkConfigurationSchema.parse({
+          walkMode: "CRITERIOLOGICAL",
+          seed: "cand-seed",
+          walkLength: 5,
+          branchFactor: 6,
+          minArticleLength: 500,
+          samplingMode: "WEIGHTED",
+          criteriaWeights: { temporalContinuity: 4, visualizability: 3 },
+          start: { kind: "TITLE", value: "Touchstone" },
+        }),
+      },
+      db,
+    );
+
+    await startWalk(project.id, { mode: "fresh" }, db, fixtureFactory);
+    await waitForJobSettled(project.id);
+
+    const walk = await getWalk(project.id, db);
+    expect(walk.latestJob?.status).toBe("COMPLETE");
+    expect(walk.candidateWalks).toHaveLength(3);
+    expect(walk.sourceNodes).toHaveLength(0); // nothing materialized yet
+    expect(walk.candidateWalks.map((c) => c.label)).toEqual(["A", "B", "C"]);
+    for (const candidate of walk.candidateWalks) {
+      expect(candidate.titles[0]).toBe("Touchstone (assaying tool)");
+      expect(candidate.titles.length).toBeGreaterThan(1);
+      for (const value of Object.values(candidate.pathScore)) {
+        expect(value).toBeGreaterThanOrEqual(0);
+        expect(value).toBeLessThanOrEqual(1);
+      }
+    }
+
+    const chosen = walk.candidateWalks[1];
+    const result = await chooseCandidateWalk(project.id, chosen.id, db);
+    expect(result.ok).toBe(true);
+
+    const after = await getWalk(project.id, db);
+    expect(after.sourceNodes.map((n) => n.title)).toEqual(chosen.titles);
+    expect(after.candidateWalks.find((c) => c.id === chosen.id)?.chosen).toBe(true);
+    // Scored hops carry their score and explanation into SourceNodes.
+    for (const node of after.sourceNodes.slice(1)) {
+      expect(node.rawWalkScore).not.toBeNull();
+      const own = node.outgoingLinks.find((c) => c.title === node.title);
+      expect(own?.why?.length).toBeGreaterThan(0);
+    }
+
+    const updated = await db.walkProject.findUnique({ where: { id: project.id } });
+    expect(updated?.startNodeId).toBe(after.sourceNodes[0].id);
+  });
+
+  it("criteriological same-seed regeneration reproduces all three candidate paths", async () => {
+    const project = await createProject(
+      {
+        title: "Criteriological repro",
+        configuration: walkConfigurationSchema.parse({
+          walkMode: "CRITERIOLOGICAL",
+          seed: "cand-repro",
+          walkLength: 4,
+          branchFactor: 6,
+          minArticleLength: 500,
+          start: { kind: "TITLE", value: "Coinage" },
+        }),
+      },
+      db,
+    );
+
+    await startWalk(project.id, { mode: "fresh" }, db, fixtureFactory);
+    await waitForJobSettled(project.id);
+    const first = (await getWalk(project.id, db)).candidateWalks.map((c) => c.titles);
+
+    await startWalk(project.id, { mode: "same-seed" }, db, fixtureFactory);
+    await waitForJobSettled(project.id);
+    const second = (await getWalk(project.id, db)).candidateWalks.map((c) => c.titles);
+
+    expect(second).toEqual(first);
   });
 
   it("marks the job FAILED when the start cannot be resolved", async () => {

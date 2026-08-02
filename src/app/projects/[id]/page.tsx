@@ -4,11 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import {
+  chooseCandidateWalkRequest,
   fetchProject,
   fetchWalk,
   startWalkRequest,
   updateProjectRequest,
 } from "@/lib/api";
+import { CandidateComparison } from "@/components/flowchart/CandidateComparison";
 import type { WalkConfiguration } from "@/schemas/walk-configuration";
 import { WalkConfigurationForm } from "@/components/configuration/WalkConfigurationForm";
 import { FlowchartCanvas } from "@/components/flowchart/FlowchartCanvas";
@@ -72,6 +74,15 @@ export default function ProjectWorkbenchPage({
 
   const startWalkMutation = useMutation({
     mutationFn: (mode: "fresh" | "same-seed") => startWalkRequest(id, { mode }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["walk", id] });
+      queryClient.invalidateQueries({ queryKey: ["project", id] });
+    },
+  });
+
+  const chooseMutation = useMutation({
+    mutationFn: (candidateWalkId: string) =>
+      chooseCandidateWalkRequest(id, candidateWalkId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["walk", id] });
       queryClient.invalidateQueries({ queryKey: ["project", id] });
@@ -190,7 +201,20 @@ export default function ProjectWorkbenchPage({
           className="h-[60vh] min-w-0 shrink-0 lg:h-auto lg:min-h-0 lg:flex-[3] lg:shrink"
         >
           <div className="flex h-full flex-col">
-            <FlowchartCanvas sourceNodes={walkQuery.data?.sourceNodes ?? []} />
+            {(walkQuery.data?.sourceNodes.length ?? 0) === 0 &&
+            (walkQuery.data?.candidateWalks.length ?? 0) > 0 ? (
+              <CandidateComparison
+                candidates={walkQuery.data?.candidateWalks ?? []}
+                onChoose={(candidateWalkId) =>
+                  chooseMutation.mutate(candidateWalkId)
+                }
+                choosing={chooseMutation.isPending}
+              />
+            ) : (
+              <FlowchartCanvas
+                sourceNodes={walkQuery.data?.sourceNodes ?? []}
+              />
+            )}
           </div>
         </Panel>
         <Panel

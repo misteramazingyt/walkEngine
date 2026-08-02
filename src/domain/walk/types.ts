@@ -24,6 +24,48 @@ export class RequestBudgetExhaustedError extends Error {
   }
 }
 
+/**
+ * A hard HTTP request budget shared by every gateway a walk uses (Wikipedia
+ * and Wikidata draw from the same pool, so the configured maximum counts
+ * actual requests, not logical operations).
+ */
+export class RequestBudget {
+  private usedCount = 0;
+
+  constructor(public readonly limit: number) {}
+
+  get used(): number {
+    return this.usedCount;
+  }
+
+  spend(): void {
+    if (this.usedCount >= this.limit) {
+      throw new RequestBudgetExhaustedError(this.limit);
+    }
+    this.usedCount += 1;
+  }
+}
+
+/** Structured Wikidata facts for one entity, converted at the boundary. */
+export interface EntityFacts {
+  qid: string;
+  /** English labels of P31 (instance of) values. */
+  instanceOfLabels: string[];
+  /** Era as years (negative = BCE), from inception/birth/death/start/end. */
+  eraStart?: number;
+  eraEnd?: number;
+  coord?: { lat: number; lon: number };
+  /** Number of language editions — used as a popularity proxy. */
+  sitelinks: number;
+  /** QIDs referenced by this entity's claims (documented-relation signal). */
+  claimTargetQids: string[];
+}
+
+export interface EntityFactsGateway {
+  /** Batched entity facts; missing/unknown ids are simply absent. */
+  getEntityFacts(qids: string[]): Promise<Map<string, EntityFacts>>;
+}
+
 export interface WalkGateway {
   /**
    * Main-namespace outgoing link titles for an article, sorted
@@ -65,6 +107,12 @@ export interface CandidateRecord {
   eligible: boolean;
   /** Why an ineligible candidate was excluded (title-rule, disambiguation…). */
   exclusionReason?: string;
+  /** Criteriological mode: normalized feature values for this candidate. */
+  features?: import("./features").CandidateFeatures;
+  /** Criteriological mode: weighted score. */
+  score?: number;
+  /** Criteriological mode: human-readable top contributions. */
+  why?: string[];
 }
 
 export interface VisitedNode {

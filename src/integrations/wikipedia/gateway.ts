@@ -1,8 +1,4 @@
-import {
-  RequestBudgetExhaustedError,
-  type ArticleInfo,
-  type WalkGateway,
-} from "@/domain/walk/types";
+import { RequestBudget, type ArticleInfo, type WalkGateway } from "@/domain/walk/types";
 
 // Real MediaWiki Action API gateway. Responsibilities:
 // - polite serial requests with a minimum gap and a descriptive User-Agent;
@@ -53,15 +49,13 @@ async function politeDelay(): Promise<void> {
 }
 
 export class WikipediaGateway implements WalkGateway {
-  private used = 0;
-
   constructor(
     private readonly language: string,
-    private readonly budget: number,
+    private readonly budget: RequestBudget,
   ) {}
 
   requestsUsed(): number {
-    return this.used;
+    return this.budget.used;
   }
 
   private endpoint(): string {
@@ -79,10 +73,7 @@ export class WikipediaGateway implements WalkGateway {
     const cached = cacheGet(key);
     if (cached !== undefined) return cached;
 
-    if (this.used >= this.budget) {
-      throw new RequestBudgetExhaustedError(this.budget);
-    }
-    this.used += 1;
+    this.budget.spend();
 
     await politeDelay();
     const response = await fetch(`${this.endpoint()}?${query.toString()}`, {

@@ -97,16 +97,37 @@ Deferred within Phase 2, honestly surfaced in the UI as disabled fields:
 max popularity percentile (needs pageview data), temporal/geographic bounds
 (need Wikidata metadata) — both arrive with Phase 3 enrichment.
 
-### Phase 3 — criteriological walk
+### Phase 3 — criteriological walk  ✅
 
-- Candidate feature extraction and normalization to [0, 1]
-- Weighted scoring with repetition penalty; greedy + weighted sampling
-  (beam behind a feature flag, interface only)
-- Optional LLM rerank of the top deterministic candidates only
-- Three candidate paths, path-level scores, comparison screen
-- Per-step "why this node" explanation surfaced in the UI
+- [x] Wikidata enrichment gateway (wbgetentities): instance-of labels,
+      era years, coordinates, sitelink counts, claim-target QIDs; shares one
+      RequestBudget with the Wikipedia gateway
+- [x] 11-feature candidate vector, every feature normalized to [0, 1];
+      unknown metadata is neutral (0.5), never a punishment
+- [x] Weighted scoring: user criteria map to deterministic features via a
+      documented matrix; LLM-only criteria (material dependency, conceptual
+      inheritance, …) are marked * in the UI and reserved for the Phase 4
+      rerank — they never pretend to be measured deterministically
+- [x] Repetition penalty (repeated entity type, crowded century,
+      biography-heavy paths) subtracted from the weighted sum
+- [x] Hard bounds: temporal (excludes only on positive evidence) and
+      popularity cap (documented sitelink-count approximation)
+- [x] Sampling: greedy, weighted, exploratory (softmax); beam interface
+      feature-flagged off and refuses loudly
+- [x] Three seeded candidate paths per generation (seed::A/B/C) with
+      path-level PathScore; comparison screen; choosing materializes
+      SourceNodes losslessly from stored JSON
+- [x] Per-hop "why this node": score breakdown, top contributions,
+      runner-ups, and exclusion reasons in the inspector; score chips on
+      flowchart nodes
+- [x] rerank-candidates.v1 prompt stored (invocation lands with Phase 4)
 
-**Acceptance:** the UI shows why every next node was selected.
+**Acceptance (met):** the UI shows why every next node was selected — the
+inspector renders the chosen node's score breakdown, its runner-ups with
+scores, and every exclusion with its reason.
+
+Still deferred: geographic bounds (free-text region needs resolution against
+coordinates — Phase 4+), LLM rerank invocation (needs the live provider).
 
 ### Phase 4 — significance orchestration
 

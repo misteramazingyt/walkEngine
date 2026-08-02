@@ -1,17 +1,24 @@
 import { z } from "zod";
 import { createRng } from "@/domain/walk/prng";
 import { runRandomWalk } from "@/domain/walk/random-walk";
+import {
+  runCriteriologicalWalk,
+  type EnrichedVisitedNode,
+} from "@/domain/walk/criteriological-walk";
+import { scorePath, type PathScore } from "@/domain/walk/features";
 import type { CandidateRecord, WalkEndReason } from "@/domain/walk/types";
 import { walkConfigurationSchema } from "@/schemas/walk-configuration";
 import { prisma } from "@/server/db";
-import { createWalkGateway, type FullGateway } from "@/server/walk-gateway-factory";
+import {
+  createGatewayBundle,
+  type GatewayBundle,
+} from "@/server/walk-gateway-factory";
 import type { PrismaClient } from "@/generated/prisma/client";
 
-// Walk orchestration: resolve start → run engine → persist SourceNodes.
-// The walk is persisted atomically after the engine finishes; a failed walk
-// never destroys the previous one. Regeneration is always an explicit user
-// action (never a side effect), so replacing prior source nodes here honors
-// the "persist expensive material" rule.
+// Walk orchestration for both modes. RANDOM produces one path and persists
+// it directly. CRITERIOLOGICAL produces three seeded candidate paths for
+// the user to compare; choosing one materializes it into SourceNodes.
+// Everything expensive is persisted before the next stage begins.
 
 export const startWalkInputSchema = z.object({
   mode: z.enum(["fresh", "same-seed"]).default("fresh"),
@@ -26,8 +33,21 @@ export interface SourceNodeDto {
   wikipediaPageId: number;
   wikidataId: string | null;
   categories: string[];
+  entityTypes: string[];
+  dateStart: number | null;
+  dateEnd: number | null;
+  rawWalkScore: number | null;
   outgoingLinks: CandidateRecord[];
   visitIndex: number;
+}
+
+export interface CandidateWalkDto {
+  id: string;
+  label: string;
+  endReason: string;
+  pathScore: PathScore;
+  titles: string[];
+  chosen: boolean;
 }
 
 export interface GenerationJobDto {
@@ -39,6 +59,45 @@ export interface GenerationJobDto {
   error: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Everything needed to materialize a node without refetching. */
+interface PersistedWalkNode {
+  title: string;
+  url: string;
+  summary: string;
+  pageId: number;
+  wikidataId?: string;
+  categories: string[];
+  visitIndex: number;
+  score?: number;
+  features?: import("@/domain/walk/features").CandidateFeatures;
+  why?: string[];
+  chosenFrom: CandidateRecord[];
+  entityTypes: string[];
+  eraStart?: number;
+  eraEnd?: number;
+  coord?: { lat: number; lon: number };
+}
+
+function toPersistedNode(node: EnrichedVisitedNode): PersistedWalkNode {
+  return {
+    title: node.info.title,
+    url: node.info.url,
+    summary: node.info.summary,
+    pageId: node.info.pageId,
+    wikidataId: node.info.wikidataId,
+    categories: node.categories,
+    visitIndex: node.visitIndex,
+    score: node.score,
+    features: node.features,
+    why: node.why,
+    chosenFrom: node.chosenFrom,
+    entityTypes: node.facts?.instanceOfLabels ?? [],
+    eraStart: node.facts?.eraStart,
+    eraEnd: node.facts?.eraEnd,
+    coord: node.facts?.coord,
+  };
 }
 
 const END_REASON_LABEL: Record<WalkEndReason, string> = {
@@ -70,10 +129,14 @@ function jobToDto(row: {
 }
 
 export async function getWalk(projectId: string, db: PrismaClient = prisma) {
-  const [nodes, latestJob] = await Promise.all([
+  const [nodes, candidates, latestJob] = await Promise.all([
     db.sourceNode.findMany({
       where: { projectId },
       orderBy: { visitIndex: "asc" },
+    }),
+    db.candidateWalk.findMany({
+      where: { projectId },
+      orderBy: { label: "asc" },
     }),
     db.generationJob.findFirst({
       where: { projectId, type: "WALK" },
@@ -89,25 +152,38 @@ export async function getWalk(projectId: string, db: PrismaClient = prisma) {
     wikipediaPageId: n.wikipediaPageId,
     wikidataId: n.wikidataId ?? null,
     categories: JSON.parse(n.categories) as string[],
+    entityTypes: JSON.parse(n.entityTypes) as string[],
+    dateStart: n.dateStart ?? null,
+    dateEnd: n.dateEnd ?? null,
+    rawWalkScore: n.rawWalkScore ?? null,
     outgoingLinks: JSON.parse(n.outgoingLinks) as CandidateRecord[],
     visitIndex: n.visitIndex,
   }));
 
+  const candidateWalks: CandidateWalkDto[] = candidates.map((c) => {
+    const persisted = JSON.parse(c.nodes) as PersistedWalkNode[];
+    return {
+      id: c.id,
+      label: c.label,
+      endReason: c.endReason,
+      pathScore: JSON.parse(c.pathScore) as PathScore,
+      titles: persisted.map((n) => n.title),
+      chosen: c.chosen,
+    };
+  });
+
   return {
     sourceNodes,
+    candidateWalks,
     latestJob: latestJob ? jobToDto(latestJob) : null,
   };
 }
 
-/**
- * Create the job row and kick off the walk. Returns the queued job; the walk
- * itself runs in the background and reports through the job row.
- */
 export async function startWalk(
   projectId: string,
   input: StartWalkInput,
   db: PrismaClient = prisma,
-  gatewayFactory: (language: string, budget: number) => FullGateway = createWalkGateway,
+  gatewayFactory: (language: string, budget: number) => GatewayBundle = createGatewayBundle,
 ): Promise<
   | { ok: true; job: GenerationJobDto }
   | { ok: false; status: number; error: string }
@@ -132,30 +208,36 @@ export async function startWalk(
     JSON.parse(project.configuration),
   );
 
-  // "Regenerate with same seed" must reproduce the path even when the start
-  // was RANDOM: reuse the previously resolved start title.
+  // Same-seed regeneration reuses the previously resolved start title (from
+  // materialized nodes, or from stored candidate walks if none was chosen).
   let pinnedStartTitle: string | null = null;
   if (parsed.mode === "same-seed") {
     const first = await db.sourceNode.findFirst({
       where: { projectId, visitIndex: 0 },
     });
-    if (!first) {
+    if (first) {
+      pinnedStartTitle = first.title;
+    } else {
+      const candidate = await db.candidateWalk.findFirst({
+        where: { projectId },
+        orderBy: { label: "asc" },
+      });
+      if (candidate) {
+        const nodes = JSON.parse(candidate.nodes) as PersistedWalkNode[];
+        pinnedStartTitle = nodes[0]?.title ?? null;
+      }
+    }
+    if (!pinnedStartTitle) {
       return {
         ok: false,
         status: 409,
         error: "No previous walk to regenerate; generate a walk first",
       };
     }
-    pinnedStartTitle = first.title;
   }
 
   const job = await db.generationJob.create({
-    data: {
-      projectId,
-      type: "WALK",
-      status: "QUEUED",
-      currentStep: "Queued",
-    },
+    data: { projectId, type: "WALK", status: "QUEUED", currentStep: "Queued" },
   });
 
   void executeWalkJob({
@@ -166,8 +248,6 @@ export async function startWalk(
     configuration,
     pinnedStartTitle,
   }).catch(async (error) => {
-    // Last-resort guard: executeWalkJob handles its own failures, so this
-    // only fires if even the failure bookkeeping threw.
     console.error("Walk job crashed outside its own error handling:", error);
     await db.generationJob
       .update({
@@ -180,9 +260,76 @@ export async function startWalk(
   return { ok: true, job: jobToDto(job) };
 }
 
+/** Materialize one candidate walk into SourceNodes (the "chosen" path). */
+export async function chooseCandidateWalk(
+  projectId: string,
+  candidateWalkId: string,
+  db: PrismaClient = prisma,
+): Promise<
+  | { ok: true }
+  | { ok: false; status: number; error: string }
+> {
+  const candidate = await db.candidateWalk.findUnique({
+    where: { id: candidateWalkId },
+  });
+  if (!candidate || candidate.projectId !== projectId) {
+    return { ok: false, status: 404, error: "Candidate walk not found" };
+  }
+  const nodes = JSON.parse(candidate.nodes) as PersistedWalkNode[];
+  if (nodes.length === 0) {
+    return { ok: false, status: 409, error: "Candidate walk has no nodes" };
+  }
+
+  await db.$transaction(async (tx) => {
+    await tx.sourceNode.deleteMany({ where: { projectId } });
+    for (const node of nodes) {
+      const created = await tx.sourceNode.create({
+        data: {
+          projectId,
+          wikipediaPageId: node.pageId,
+          wikidataId: node.wikidataId,
+          title: node.title,
+          url: node.url,
+          summary: node.summary,
+          categories: JSON.stringify(node.categories),
+          entityTypes: JSON.stringify(node.entityTypes),
+          dateStart: node.eraStart,
+          dateEnd: node.eraEnd,
+          locations: JSON.stringify(
+            node.coord ? [`${node.coord.lat},${node.coord.lon}`] : [],
+          ),
+          rawWalkScore: node.score,
+          outgoingLinks: JSON.stringify(node.chosenFrom),
+          visitIndex: node.visitIndex,
+        },
+      });
+      if (node.visitIndex === 0) {
+        await tx.walkProject.update({
+          where: { id: projectId },
+          data: { startNodeId: created.id },
+        });
+      }
+    }
+    await tx.candidateWalk.updateMany({
+      where: { projectId },
+      data: { chosen: false },
+    });
+    await tx.candidateWalk.update({
+      where: { id: candidateWalkId },
+      data: { chosen: true },
+    });
+    await tx.walkProject.update({
+      where: { id: projectId },
+      data: { status: "WALK_READY" },
+    });
+  });
+
+  return { ok: true };
+}
+
 async function executeWalkJob(options: {
   db: PrismaClient;
-  gatewayFactory: (language: string, budget: number) => FullGateway;
+  gatewayFactory: (language: string, budget: number) => GatewayBundle;
   projectId: string;
   jobId: string;
   configuration: ReturnType<typeof walkConfigurationSchema.parse>;
@@ -212,27 +359,40 @@ async function executeWalkJob(options: {
       data: { status: "WALKING" },
     });
 
-    const gateway = gatewayFactory(
+    if (configuration.walkMode === "RANDOM") {
+      await executeRandomWalk();
+    } else {
+      await executeCriteriologicalWalk();
+    }
+  } catch (error) {
+    await failJob(error instanceof Error ? error.message : String(error));
+  }
+
+  async function resolveStart(bundle: GatewayBundle): Promise<string> {
+    if (pinnedStartTitle) return pinnedStartTitle;
+    return (await bundle.wikipedia.resolveStart(configuration.start)).title;
+  }
+
+  function engineConfig() {
+    return {
+      walkLength: configuration.walkLength,
+      branchFactor: configuration.branchFactor,
+      allowRevisits: configuration.allowRevisits,
+      excludeMetaPages: configuration.excludeMetaPages,
+      minArticleLength: configuration.minArticleLength,
+    };
+  }
+
+  async function executeRandomWalk(): Promise<void> {
+    const bundle = gatewayFactory(
       configuration.language,
       configuration.maxGraphRequests,
     );
-
-    const startTitle =
-      pinnedStartTitle ??
-      (await gateway.resolveStart(configuration.start)).title;
-
-    const rng = createRng(configuration.seed);
-
+    const startTitle = await resolveStart(bundle);
     const result = await runRandomWalk({
-      gateway,
-      rng,
-      config: {
-        walkLength: configuration.walkLength,
-        branchFactor: configuration.branchFactor,
-        allowRevisits: configuration.allowRevisits,
-        excludeMetaPages: configuration.excludeMetaPages,
-        minArticleLength: configuration.minArticleLength,
-      },
+      gateway: bundle.wikipedia,
+      rng: createRng(configuration.seed),
+      config: engineConfig(),
       startTitle,
       onProgress: async (p) => {
         await db.generationJob.update({
@@ -250,9 +410,9 @@ async function executeWalkJob(options: {
       return;
     }
 
-    // Atomically replace the previous walk with the new one.
     await db.$transaction(async (tx) => {
       await tx.sourceNode.deleteMany({ where: { projectId } });
+      await tx.candidateWalk.deleteMany({ where: { projectId } });
       for (const node of result.visited) {
         const created = await tx.sourceNode.create({
           data: {
@@ -288,7 +448,103 @@ async function executeWalkJob(options: {
         currentStep: `Walk complete: ${result.visited.length} nodes, ${result.requestsUsed} requests, ${END_REASON_LABEL[result.endReason]}`,
       },
     });
-  } catch (error) {
-    await failJob(error instanceof Error ? error.message : String(error));
+  }
+
+  async function executeCriteriologicalWalk(): Promise<void> {
+    const labels = ["A", "B", "C"] as const;
+    const results: Array<{
+      label: string;
+      seedUsed: string;
+      nodes: PersistedWalkNode[];
+      pathScore: PathScore;
+      endReason: WalkEndReason;
+    }> = [];
+
+    // One shared budget across all three candidates: maxGraphRequests bounds
+    // the whole generation, not each path separately. Shared caching makes
+    // later candidates far cheaper than the first.
+    const bundle = gatewayFactory(
+      configuration.language,
+      configuration.maxGraphRequests,
+    );
+    const startTitle = await resolveStart(bundle);
+
+    for (let i = 0; i < labels.length; i++) {
+      const label = labels[i];
+      const seedUsed = `${configuration.seed}::${label}`;
+      const result = await runCriteriologicalWalk({
+        wikipedia: bundle.wikipedia,
+        entityFacts: bundle.entityFacts,
+        rng: createRng(seedUsed),
+        config: {
+          ...engineConfig(),
+          criteriaWeights: configuration.criteriaWeights,
+          pathDescription: configuration.pathDescription,
+          samplingMode: configuration.samplingMode,
+          temporalBounds: configuration.temporalBounds,
+          maxPopularityPercentile: configuration.maxPopularityPercentile,
+        },
+        startTitle,
+        onProgress: async (p) => {
+          await db.generationJob.update({
+            where: { id: jobId },
+            data: {
+              progress: (i + p.visitedCount / p.targetLength) / labels.length,
+              currentStep: `Candidate ${label}: visited ${p.visitedCount}/${p.targetLength}: ${p.currentTitle} (${p.requestsUsed} requests)`,
+            },
+          });
+        },
+      });
+
+      if (result.visited.length === 0) {
+        throw new Error(
+          `Candidate ${label} visited no articles (start could not be visited)`,
+        );
+      }
+
+      results.push({
+        label,
+        seedUsed,
+        nodes: result.visited.map(toPersistedNode),
+        pathScore: scorePath(
+          result.visited.map((n) => ({ features: n.features, facts: n.facts })),
+        ),
+        endReason: result.endReason,
+      });
+
+      // Budget exhausted mid-generation: keep what we have rather than
+      // discarding finished candidates.
+      if (result.endReason === "REQUEST_BUDGET_EXHAUSTED") break;
+    }
+
+    await db.$transaction(async (tx) => {
+      await tx.candidateWalk.deleteMany({ where: { projectId } });
+      await tx.sourceNode.deleteMany({ where: { projectId } });
+      for (const r of results) {
+        await tx.candidateWalk.create({
+          data: {
+            projectId,
+            label: r.label,
+            seedUsed: r.seedUsed,
+            endReason: r.endReason,
+            pathScore: JSON.stringify(r.pathScore),
+            nodes: JSON.stringify(r.nodes),
+          },
+        });
+      }
+      await tx.walkProject.update({
+        where: { id: projectId },
+        data: { status: "WALK_READY", startNodeId: null },
+      });
+    });
+
+    await db.generationJob.update({
+      where: { id: jobId },
+      data: {
+        status: "COMPLETE",
+        progress: 1,
+        currentStep: `Generated ${results.length} candidate path${results.length === 1 ? "" : "s"} (${bundle.budget.used} requests). Choose one to continue.`,
+      },
+    });
   }
 }

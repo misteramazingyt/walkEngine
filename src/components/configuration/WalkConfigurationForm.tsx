@@ -6,6 +6,7 @@ import {
   CRITERIA,
   CRITERION_LABELS,
 } from "@/domain/enums";
+import { LLM_ONLY_CRITERIA } from "@/domain/walk/features";
 import type { WalkConfiguration } from "@/schemas/walk-configuration";
 import {
   FieldRow,
@@ -93,9 +94,7 @@ export function WalkConfigurationForm({
             >
               <option value="GREEDY">Greedy</option>
               <option value="WEIGHTED">Weighted</option>
-              <option value="EXPLORATORY" disabled>
-                Exploratory (Phase 3)
-              </option>
+              <option value="EXPLORATORY">Exploratory (softmax)</option>
               <option value="BEAM" disabled>
                 Beam (feature-flagged)
               </option>
@@ -238,8 +237,8 @@ export function WalkConfigurationForm({
                 min={0}
                 max={100}
                 className="w-20"
-                disabled
-                title="Applied from Phase 3 (needs pageview data)"
+                disabled={!criteriological}
+                title="Criteriological mode only. Approximated from Wikidata sitelink counts, not real pageviews."
                 value={value.maxPopularityPercentile}
                 onChange={(e) =>
                   set("maxPopularityPercentile", Number(e.target.value))
@@ -262,8 +261,8 @@ export function WalkConfigurationForm({
                 id="temporal-start"
                 type="number"
                 className="w-24"
-                disabled
-                title="Applied from Phase 3 (needs Wikidata metadata)"
+                disabled={!criteriological}
+                title="Criteriological mode only. Excludes candidates whose Wikidata era is known to fall outside the bounds; unknown eras stay eligible."
                 value={value.temporalBounds.start ?? ""}
                 placeholder="unbounded"
                 onChange={(e) =>
@@ -280,8 +279,8 @@ export function WalkConfigurationForm({
                 id="temporal-end"
                 type="number"
                 className="w-24"
-                disabled
-                title="Applied from Phase 3 (needs Wikidata metadata)"
+                disabled={!criteriological}
+                title="Criteriological mode only. Excludes candidates whose Wikidata era is known to fall outside the bounds; unknown eras stay eligible."
                 value={value.temporalBounds.end ?? ""}
                 placeholder="unbounded"
                 onChange={(e) =>
@@ -341,7 +340,11 @@ export function WalkConfigurationForm({
           {CRITERIA.map((criterion) => (
             <FieldRow
               key={criterion}
-              label={CRITERION_LABELS[criterion]}
+              label={
+                LLM_ONLY_CRITERIA.includes(criterion)
+                  ? `${CRITERION_LABELS[criterion]} *`
+                  : CRITERION_LABELS[criterion]
+              }
               htmlFor={`weight-${criterion}`}
             >
               <RetroInput
@@ -352,6 +355,11 @@ export function WalkConfigurationForm({
                 step={0.5}
                 className="w-16"
                 disabled={!criteriological}
+                title={
+                  LLM_ONLY_CRITERIA.includes(criterion)
+                    ? "* No deterministic feature measures this; it participates only via LLM reranking (Phase 4)."
+                    : undefined
+                }
                 value={value.criteriaWeights[criterion]}
                 onChange={(e) =>
                   set("criteriaWeights", {

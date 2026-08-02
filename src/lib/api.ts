@@ -1,5 +1,6 @@
 import type { WalkProjectDto, UpdateProjectInput } from "@/server/projects";
 import type {
+  CandidateWalkDto,
   GenerationJobDto,
   SourceNodeDto,
   StartWalkInput,
@@ -8,6 +9,7 @@ import type { WalkConfiguration } from "@/schemas/walk-configuration";
 
 export interface WalkDto {
   sourceNodes: SourceNodeDto[];
+  candidateWalks: CandidateWalkDto[];
   latestJob: GenerationJobDto | null;
 }
 
@@ -78,6 +80,18 @@ export async function startWalkRequest(
   if (!response.ok) throw new Error(await parseError(response));
   const body = (await response.json()) as { job: GenerationJobDto };
   return body.job;
+}
+
+export async function chooseCandidateWalkRequest(
+  projectId: string,
+  candidateWalkId: string,
+): Promise<void> {
+  const response = await fetch(`/api/projects/${projectId}/walk/choose`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ candidateWalkId }),
+  });
+  if (!response.ok) throw new Error(await parseError(response));
 }
 
 export async function updateProjectRequest(

@@ -1,6 +1,8 @@
 import {
-  RequestBudgetExhaustedError,
+  RequestBudget,
   type ArticleInfo,
+  type EntityFacts,
+  type EntityFactsGateway,
   type WalkGateway,
 } from "@/domain/walk/types";
 
@@ -18,6 +20,15 @@ export interface FixtureArticle {
   wikidataId?: string;
   categories: string[];
   links: string[];
+  /** Synthetic Wikidata-style facts for criteriological enrichment. */
+  facts?: {
+    types: string[];
+    eraStart?: number;
+    eraEnd?: number;
+    coord?: { lat: number; lon: number };
+    sitelinks?: number;
+    claimTargets?: string[]; // titles of related fixture articles
+  };
 }
 
 export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
@@ -29,6 +40,14 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 9000,
       wikidataId: "Q1519002",
       categories: ["Metallurgy", "Assaying"],
+      facts: {
+        types: ["tool"],
+        eraStart: -600,
+        eraEnd: -500,
+        coord: { lat: 38.5, lon: 28.0 },
+        sitelinks: 25,
+        claimTargets: ["Lydia", "Gold", "Electrum"],
+      },
       links: [
         "Coinage",
         "Lydia",
@@ -47,6 +66,14 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 24000,
       wikidataId: "Q41207",
       categories: ["Currency", "Economic history"],
+      facts: {
+        types: ["economic practice"],
+        eraStart: -600,
+        eraEnd: 2000,
+        coord: { lat: 38.5, lon: 28.0 },
+        sitelinks: 80,
+        claimTargets: ["Lydia", "Touchstone (assaying tool)", "Mint (facility)"],
+      },
       links: [
         "Long-distance trade",
         "Lydia",
@@ -64,6 +91,13 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 18000,
       wikidataId: "Q601401",
       categories: ["Trade", "Economic history"],
+      facts: {
+        types: ["economic practice"],
+        eraStart: -500,
+        eraEnd: 1800,
+        sitelinks: 40,
+        claimTargets: ["Coinage", "Silk Road"],
+      },
       links: [
         "Alexandria",
         "Silk Road",
@@ -79,6 +113,14 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 41000,
       wikidataId: "Q87",
       categories: ["Port cities", "Hellenistic Egypt"],
+      facts: {
+        types: ["city"],
+        eraStart: -331,
+        eraEnd: 2000,
+        coord: { lat: 31.2, lon: 29.9 },
+        sitelinks: 200,
+        claimTargets: ["Library of Alexandria", "Lighthouse of Alexandria"],
+      },
       links: [
         "Astronomical tables",
         "Library of Alexandria",
@@ -94,6 +136,14 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 15000,
       wikidataId: "Q1140444",
       categories: ["Astronomy", "Navigation"],
+      facts: {
+        types: ["document"],
+        eraStart: 150,
+        eraEnd: 1800,
+        coord: { lat: 31.2, lon: 29.9 },
+        sitelinks: 30,
+        claimTargets: ["Ptolemy", "Ephemeris", "Alexandria"],
+      },
       links: [
         "Oceanic navigation",
         "Ptolemy",
@@ -109,6 +159,14 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 20000,
       wikidataId: "Q639907",
       categories: ["Navigation", "Age of Sail"],
+      facts: {
+        types: ["practice"],
+        eraStart: 1400,
+        eraEnd: 1900,
+        coord: { lat: 38.7, lon: -9.1 },
+        sitelinks: 35,
+        claimTargets: ["Astronomical tables", "Dead reckoning", "Marine chronometer"],
+      },
       links: [
         "Compass variation",
         "Astronomical tables",
@@ -123,6 +181,14 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 12000,
       wikidataId: "Q679033",
       categories: ["Navigation", "Geomagnetism"],
+      facts: {
+        types: ["physical phenomenon"],
+        eraStart: 1500,
+        eraEnd: 1900,
+        coord: { lat: 51.5, lon: -0.1 },
+        sitelinks: 22,
+        claimTargets: ["Terrestrial magnetism", "Edmond Halley"],
+      },
       links: ["Terrestrial magnetism", "Oceanic navigation", "Edmond Halley"],
     },
     {
@@ -132,6 +198,13 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 22000,
       wikidataId: "Q7362",
       categories: ["Geophysics"],
+      facts: {
+        types: ["scientific field"],
+        eraStart: 1600,
+        eraEnd: 2000,
+        sitelinks: 45,
+        claimTargets: ["William Gilbert (physician)", "Compass variation"],
+      },
       links: [
         "Static electricity",
         "Compass variation",
@@ -145,6 +218,14 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 17000,
       wikidataId: "Q26336",
       categories: ["Electrostatics"],
+      facts: {
+        types: ["physical phenomenon"],
+        eraStart: 1650,
+        eraEnd: 1800,
+        coord: { lat: 52.2, lon: 4.5 },
+        sitelinks: 55,
+        claimTargets: ["Leyden jar"],
+      },
       links: [
         "Atmospheric experimentation",
         "Terrestrial magnetism",
@@ -158,6 +239,14 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 11000,
       wikidataId: "Q3141560",
       categories: ["History of science"],
+      facts: {
+        types: ["practice"],
+        eraStart: 1750,
+        eraEnd: 1950,
+        coord: { lat: 39.9, lon: -75.2 },
+        sitelinks: 12,
+        claimTargets: ["Lightning rod", "Cloud chamber"],
+      },
       links: ["Cloud chamber", "Static electricity", "Lightning rod"],
     },
     {
@@ -167,6 +256,14 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 14000,
       wikidataId: "Q244989",
       categories: ["Particle detectors"],
+      facts: {
+        types: ["instrument"],
+        eraStart: 1911,
+        eraEnd: 1960,
+        coord: { lat: 55.9, lon: -3.2 },
+        sitelinks: 38,
+        claimTargets: ["Nuclear physics", "Atmospheric experimentation"],
+      },
       links: ["Radar", "Nuclear physics", "Atmospheric experimentation"],
     },
     {
@@ -176,6 +273,14 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 52000,
       wikidataId: "Q47528",
       categories: ["Radio technology", "Military technology"],
+      facts: {
+        types: ["instrument"],
+        eraStart: 1935,
+        eraEnd: 2000,
+        coord: { lat: 51.5, lon: -0.1 },
+        sitelinks: 120,
+        claimTargets: ["Cavity magnetron", "Cloud chamber"],
+      },
       links: ["Nuclear physics", "Cloud chamber", "Cavity magnetron"],
     },
     {
@@ -185,6 +290,13 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       length: 48000,
       wikidataId: "Q81197",
       categories: ["Nuclear physics"],
+      facts: {
+        types: ["scientific field"],
+        eraStart: 1896,
+        eraEnd: 2000,
+        sitelinks: 110,
+        claimTargets: ["Cloud chamber", "Radar"],
+      },
       links: ["Radar", "Cloud chamber"],
     },
     // Distractors that exclusion rules must catch.
@@ -203,55 +315,71 @@ export function buildDemonstrationGraph(): Map<string, FixtureArticle> {
       categories: ["Stubs"],
       links: [],
     },
-    // Legitimate side articles so walks can branch.
-    ...[
-      "Lydia",
-      "Gold",
-      "Electrum",
-      "Mint (facility)",
-      "Seigniorage",
-      "Silk Road",
-      "Incense trade route",
-      "Library of Alexandria",
-      "Ptolemy",
-      "Lighthouse of Alexandria",
-      "Ephemeris",
-      "Dead reckoning",
-      "Marine chronometer",
-      "Edmond Halley",
-      "William Gilbert (physician)",
-      "Leyden jar",
-      "Lightning rod",
-      "Cavity magnetron",
-    ].map((title) => ({
+    // Legitimate side articles so walks can branch. Humans carry human
+    // facts so biography-repetition penalties are testable; places carry
+    // coordinates; objects carry concrete types.
+    ...(
+      [
+        ["Lydia", "kingdom", -700, -540, { lat: 38.5, lon: 28.0 }, 60],
+        ["Gold", "chemical element", undefined, undefined, undefined, 150],
+        ["Electrum", "alloy", -700, -500, { lat: 38.5, lon: 28.0 }, 30],
+        ["Mint (facility)", "building", -600, 2000, { lat: 41.9, lon: 12.5 }, 45],
+        ["Seigniorage", "economic concept", 1200, 2000, undefined, 25],
+        ["Silk Road", "trade route", -130, 1450, { lat: 40.0, lon: 65.0 }, 130],
+        ["Incense trade route", "trade route", -700, 200, { lat: 15.0, lon: 45.0 }, 20],
+        ["Library of Alexandria", "building", -285, 270, { lat: 31.2, lon: 29.9 }, 140],
+        ["Ptolemy", "human", 100, 170, { lat: 31.2, lon: 29.9 }, 160],
+        ["Lighthouse of Alexandria", "building", -280, 1300, { lat: 31.2, lon: 29.9 }, 90],
+        ["Ephemeris", "document", 150, 2000, undefined, 35],
+        ["Dead reckoning", "practice", 1400, 1900, undefined, 28],
+        ["Marine chronometer", "instrument", 1730, 1900, { lat: 51.5, lon: -0.1 }, 42],
+        ["Edmond Halley", "human", 1656, 1742, { lat: 51.5, lon: -0.1 }, 95],
+        ["William Gilbert (physician)", "human", 1544, 1603, { lat: 51.5, lon: -0.1 }, 55],
+        ["Leyden jar", "instrument", 1745, 1900, { lat: 52.2, lon: 4.5 }, 40],
+        ["Lightning rod", "instrument", 1752, 2000, { lat: 39.9, lon: -75.2 }, 48],
+        ["Cavity magnetron", "instrument", 1940, 2000, { lat: 52.2, lon: 0.1 }, 33],
+      ] as Array<
+        [string, string, number | undefined, number | undefined, { lat: number; lon: number } | undefined, number]
+      >
+    ).map(([title, type, eraStart, eraEnd, coord, sitelinks]) => ({
       title,
-      summary: `${title} is a fixture side-article with enough length to be eligible.`,
+      summary: `${title} is a fixture side-article (${type}) with enough length to be eligible.`,
       length: 8000,
-      categories: ["Fixture side articles"],
+      categories: ["Fixture side articles", type],
       links: ["Coinage", "Alexandria", "Radar"],
+      facts: { types: [type], eraStart, eraEnd, coord, sitelinks },
     })),
   ];
 
   return new Map(articles.map((a) => [a.title, a]));
 }
 
-export class FixtureWikipediaGateway implements WalkGateway {
-  private used = 0;
+export class FixtureWikipediaGateway implements WalkGateway, EntityFactsGateway {
+  private readonly budget: RequestBudget;
+  private readonly qidIndex = new Map<string, FixtureArticle>();
 
   constructor(
     private readonly graph: Map<string, FixtureArticle> = buildDemonstrationGraph(),
-    private readonly budget: number = Number.POSITIVE_INFINITY,
-  ) {}
+    budget: RequestBudget | number = Number.MAX_SAFE_INTEGER,
+  ) {
+    this.budget =
+      budget instanceof RequestBudget ? budget : new RequestBudget(budget);
+    for (const article of this.graph.values()) {
+      this.qidIndex.set(this.qidFor(article), article);
+    }
+  }
 
   requestsUsed(): number {
-    return this.used;
+    return this.budget.used;
   }
 
   private spend(): void {
-    if (this.used >= this.budget) {
-      throw new RequestBudgetExhaustedError(this.budget);
-    }
-    this.used += 1;
+    this.budget.spend();
+  }
+
+  /** Every fixture article gets a stable synthetic QID when none is set. */
+  private qidFor(article: FixtureArticle): string {
+    return article.wikidataId ?? `QF${Math.abs(hashCode(article.title))}`;
   }
 
   private toInfo(title: string): ArticleInfo {
@@ -273,10 +401,35 @@ export class FixtureWikipediaGateway implements WalkGateway {
       url: `https://fixture.local/wiki/${encodeURIComponent(article.title)}`,
       length: article.length,
       isDisambiguation: article.isDisambiguation === true,
-      wikidataId: article.wikidataId,
+      wikidataId: this.qidFor(article),
       summary: article.summary,
       missing: false,
     };
+  }
+
+  async getEntityFacts(qids: string[]): Promise<Map<string, EntityFacts>> {
+    this.spend();
+    const result = new Map<string, EntityFacts>();
+    for (const qid of qids) {
+      const article = this.qidIndex.get(qid);
+      const facts = article?.facts;
+      if (!article) continue;
+      result.set(qid, {
+        qid,
+        instanceOfLabels: facts?.types ?? ["concept"],
+        eraStart: facts?.eraStart,
+        eraEnd: facts?.eraEnd,
+        coord: facts?.coord,
+        sitelinks: facts?.sitelinks ?? 10,
+        claimTargetQids: (facts?.claimTargets ?? [])
+          .map((title) => {
+            const target = this.graph.get(title);
+            return target ? this.qidFor(target) : null;
+          })
+          .filter((q): q is string => q !== null),
+      });
+    }
+    return result;
   }
 
   async getOutgoingLinkTitles(title: string): Promise<string[]> {

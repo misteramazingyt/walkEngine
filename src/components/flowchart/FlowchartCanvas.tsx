@@ -34,8 +34,18 @@ function SourceNodeCard({ data, selected }: NodeProps<SourceFlowNode>) {
       <Handle type="target" position={Position.Left} />
       <div className="flex items-center justify-between gap-1">
         <span className="truncate text-[12px] font-bold">{node.title}</span>
-        <span className="shrink-0 bg-titlebar px-1 text-[10px] font-bold text-titlebar-text">
-          {node.visitIndex}
+        <span className="flex shrink-0 gap-1">
+          {node.rawWalkScore !== null && (
+            <span
+              className="bg-ok px-1 text-[10px] font-bold text-titlebar-text"
+              title="Criteriological score"
+            >
+              {node.rawWalkScore.toFixed(2)}
+            </span>
+          )}
+          <span className="bg-titlebar px-1 text-[10px] font-bold text-titlebar-text">
+            {node.visitIndex}
+          </span>
         </span>
       </div>
       <p className="mt-0.5 line-clamp-2 text-[10px] leading-tight text-ink-dim">
