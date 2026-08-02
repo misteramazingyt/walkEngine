@@ -1,45 +1,35 @@
-# Fly.io configuration for MOTIF WALK.
+# fly.toml app configuration file generated for walkengine on 2026-08-02T11:48:36Z
 #
-# The app is a single machine with the SQLite database on a Fly volume
-# mounted at /data. Keep it single-machine (the deploy workflow passes
-# --ha=false): two machines would get two separate volumes and silently
-# split your projects across them.
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
-# `app` matches the app created by Fly's "Launch from GitHub" flow, which
-# also handles deploy-on-push; there is no separate CI workflow.
 
-app = "walkengine-wk5fgq"
-primary_region = "ord"
+app = 'walkengine'
+primary_region = 'ord'
 
 [build]
-  # Uses the repository Dockerfile.
 
 [env]
-  PORT = "3000"
-  DATABASE_URL = "file:/data/motif-walk.db"
+  DATABASE_URL = 'file:/data/motif-walk.db'
+  PORT = '3000'
 
-[mounts]
-  source = "motif_walk_data"
-  destination = "/data"
+[[mounts]]
+  source = 'motif_walk_data'
+  destination = '/data'
 
 [http_service]
   internal_port = 3000
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
-  # 0 = the machine sleeps when idle and cold-starts in a few seconds on the
-  # next request; costs almost nothing while idle. Set to 1 for always-on.
   min_machines_running = 0
 
   [[http_service.checks]]
-    interval = "30s"
-    timeout = "5s"
-    # Generous grace period: the entrypoint runs prisma migrate deploy
-    # before the server starts listening.
-    grace_period = "30s"
-    method = "GET"
-    path = "/api/projects"
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '30s'
+    method = 'GET'
+    path = '/api/projects'
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "512mb"
+  size = 'shared-cpu-1x'
+  memory = '512mb'
