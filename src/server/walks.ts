@@ -1123,8 +1123,14 @@ async function executeWalkJob(options: {
     });
 
     if (result.state.acceptedClusters.length === 0) {
+      // The HTTP budget is the one failure a user can act on directly, and
+      // the one most likely to be hit: a sampling cycle costs on the order
+      // of ninety requests against live Wikipedia, and no subject can be
+      // accepted without at least one cycle completing.
       await failJob(
-        `BurkeCluster accepted no subject clusters (${result.endReason.replaceAll("_", " ").toLowerCase()})`,
+        result.endReason === "REQUEST_BUDGET_EXHAUSTED"
+          ? `BurkeCluster ran out of graph requests before any subject could be accepted — the budget of ${configuration.maxGraphRequests} was spent sampling ${result.state.budget.sampledPages} pages. One sampling cycle costs roughly 90 requests against live Wikipedia and each accepted subject needs at least one, so raise Max graph requests (around 800 suits this mode's defaults) or lower Episodes per cycle and Hops per episode`
+          : `BurkeCluster accepted no subject clusters (${result.endReason.replaceAll("_", " ").toLowerCase()})`,
       );
       return;
     }

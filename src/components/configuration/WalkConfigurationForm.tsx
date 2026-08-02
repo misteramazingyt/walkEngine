@@ -21,6 +21,13 @@ import {
   RetroTextarea,
 } from "@/components/ui/retro";
 
+// The schema's request budget, sized for a walk of a dozen pages, and what
+// BurkeCluster needs instead: eight sampling cycles at roughly ninety
+// requests each, so the mode can reach its own stopping conditions rather
+// than being cut off by HTTP.
+const DEFAULT_GRAPH_REQUESTS = 150;
+const CLUSTER_GRAPH_REQUESTS = 800;
+
 // Which text an LLM-determined start reasons from — named per mode so the
 // field says what it will actually read, rather than "the seed" generically.
 function seedSourceLabel(mode: WalkConfiguration["walkMode"]): string {
@@ -117,7 +124,17 @@ export function WalkConfigurationForm({
                   seeded && value.start.kind === "RANDOM"
                     ? { ...value.start, kind: "LLM" as const }
                     : value.start;
-                onChange({ ...value, walkMode, start });
+                // A cluster sampling cycle costs around ninety requests
+                // against live Wikipedia, and every accepted subject needs
+                // at least one — so the walk-sized default guarantees the
+                // mode fails before it accepts anything. Raised only when
+                // it is still that untouched default.
+                const maxGraphRequests =
+                  walkMode === "BURKECLUSTER" &&
+                  value.maxGraphRequests === DEFAULT_GRAPH_REQUESTS
+                    ? CLUSTER_GRAPH_REQUESTS
+                    : value.maxGraphRequests;
+                onChange({ ...value, walkMode, start, maxGraphRequests });
               }}
             >
               <option value="RANDOM">Random</option>
@@ -265,8 +282,18 @@ export function WalkConfigurationForm({
                 max={2000}
                 className="w-20"
                 value={value.maxGraphRequests}
+                title={
+                  clustered
+                    ? "One BurkeCluster sampling cycle costs roughly 90 requests against live Wikipedia, and each accepted subject needs at least one cycle."
+                    : undefined
+                }
                 onChange={(e) => set("maxGraphRequests", Number(e.target.value))}
               />
+              {clustered && value.maxGraphRequests < 300 && (
+                <span className="ml-2 text-[11px] text-warn">
+                  ~90 per sampling cycle — too few to accept a subject
+                </span>
+              )}
             </FieldRow>
             <FieldRow label="Language" htmlFor="language">
               <RetroInput
