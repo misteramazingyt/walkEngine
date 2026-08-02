@@ -2,8 +2,13 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { use, useState } from "react";
-import { fetchProject, updateProjectRequest } from "@/lib/api";
+import { use, useEffect, useState } from "react";
+import {
+  fetchProject,
+  fetchWalk,
+  startWalkRequest,
+  updateProjectRequest,
+} from "@/lib/api";
 import type { WalkConfiguration } from "@/schemas/walk-configuration";
 import { WalkConfigurationForm } from "@/components/configuration/WalkConfigurationForm";
 import { FlowchartCanvas } from "@/components/flowchart/FlowchartCanvas";
@@ -48,6 +53,38 @@ export default function ProjectWorkbenchPage({
       setDraftConfig(null);
     },
   });
+
+  const walkQuery = useQuery({
+    queryKey: ["walk", id],
+    queryFn: () => fetchWalk(id),
+    // Poll while a walk job is in flight; settle once it finishes.
+    refetchInterval: (query) => {
+      const job = query.state.data?.latestJob;
+      return job && (job.status === "QUEUED" || job.status === "RUNNING")
+        ? 1200
+        : false;
+    },
+  });
+
+  const walkBusy =
+    walkQuery.data?.latestJob?.status === "QUEUED" ||
+    walkQuery.data?.latestJob?.status === "RUNNING";
+
+  const startWalkMutation = useMutation({
+    mutationFn: (mode: "fresh" | "same-seed") => startWalkRequest(id, { mode }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["walk", id] });
+      queryClient.invalidateQueries({ queryKey: ["project", id] });
+    },
+  });
+
+  // Refresh project status (WALKING → WALK_READY / FAILED) once the job settles.
+  const latestJobStatus = walkQuery.data?.latestJob?.status;
+  useEffect(() => {
+    if (latestJobStatus === "COMPLETE" || latestJobStatus === "FAILED") {
+      void queryClient.invalidateQueries({ queryKey: ["project", id] });
+    }
+  }, [latestJobStatus, queryClient, id]);
 
   if (projectQuery.isLoading) {
     return (
@@ -130,6 +167,20 @@ export default function ProjectWorkbenchPage({
           saveError={
             saveMutation.isError ? saveMutation.error.message : null
           }
+          walk={{
+            onGenerate: () => startWalkMutation.mutate("fresh"),
+            onRegenerateSameSeed: () => startWalkMutation.mutate("same-seed"),
+            busy: walkBusy || startWalkMutation.isPending,
+            hasWalk: (walkQuery.data?.sourceNodes.length ?? 0) > 0,
+            jobLabel: walkQuery.data?.latestJob
+              ? `${walkQuery.data.latestJob.status}: ${walkQuery.data.latestJob.currentStep}`
+              : null,
+            error:
+              startWalkMutation.error?.message ??
+              (walkQuery.data?.latestJob?.status === "FAILED"
+                ? (walkQuery.data.latestJob.error ?? "unknown failure")
+                : null),
+          }}
         />
       </Panel>
 
@@ -139,7 +190,7 @@ export default function ProjectWorkbenchPage({
           className="h-[60vh] min-w-0 shrink-0 lg:h-auto lg:min-h-0 lg:flex-[3] lg:shrink"
         >
           <div className="flex h-full flex-col">
-            <FlowchartCanvas />
+            <FlowchartCanvas sourceNodes={walkQuery.data?.sourceNodes ?? []} />
           </div>
         </Panel>
         <Panel
@@ -154,7 +205,10 @@ export default function ProjectWorkbenchPage({
         title="Evidence / transition inspector"
         className="max-h-48 shrink-0 lg:h-24"
       >
-        <InspectorPanel project={project} />
+        <InspectorPanel
+          project={project}
+          sourceNodes={walkQuery.data?.sourceNodes ?? []}
+        />
       </Panel>
     </main>
   );

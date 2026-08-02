@@ -1,5 +1,15 @@
 import type { WalkProjectDto, UpdateProjectInput } from "@/server/projects";
+import type {
+  GenerationJobDto,
+  SourceNodeDto,
+  StartWalkInput,
+} from "@/server/walks";
 import type { WalkConfiguration } from "@/schemas/walk-configuration";
+
+export interface WalkDto {
+  sourceNodes: SourceNodeDto[];
+  latestJob: GenerationJobDto | null;
+}
 
 // Thin typed fetch layer used by TanStack Query hooks. Server errors are
 // surfaced verbatim; nothing is silently defaulted.
@@ -48,6 +58,26 @@ export async function createProjectRequest(input: {
   if (!response.ok) throw new Error(await parseError(response));
   const body = (await response.json()) as { project: WalkProjectDto };
   return body.project;
+}
+
+export async function fetchWalk(projectId: string): Promise<WalkDto> {
+  const response = await fetch(`/api/projects/${projectId}/walk`);
+  if (!response.ok) throw new Error(await parseError(response));
+  return (await response.json()) as WalkDto;
+}
+
+export async function startWalkRequest(
+  projectId: string,
+  input: StartWalkInput,
+): Promise<GenerationJobDto> {
+  const response = await fetch(`/api/projects/${projectId}/walk`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw new Error(await parseError(response));
+  const body = (await response.json()) as { job: GenerationJobDto };
+  return body.job;
 }
 
 export async function updateProjectRequest(

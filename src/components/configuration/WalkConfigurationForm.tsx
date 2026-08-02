@@ -22,6 +22,16 @@ import {
 // phases are rendered disabled with the phase that activates them — no
 // placebo buttons.
 
+export interface WalkActions {
+  onGenerate: () => void;
+  onRegenerateSameSeed: () => void;
+  /** A walk job is queued or running. */
+  busy: boolean;
+  hasWalk: boolean;
+  jobLabel: string | null;
+  error: string | null;
+}
+
 interface Props {
   value: WalkConfiguration;
   onChange: (next: WalkConfiguration) => void;
@@ -29,6 +39,7 @@ interface Props {
   saving: boolean;
   dirty: boolean;
   saveError: string | null;
+  walk: WalkActions;
 }
 
 export function WalkConfigurationForm({
@@ -38,6 +49,7 @@ export function WalkConfigurationForm({
   saving,
   dirty,
   saveError,
+  walk,
 }: Props) {
   const set = <K extends keyof WalkConfiguration>(
     key: K,
@@ -226,6 +238,8 @@ export function WalkConfigurationForm({
                 min={0}
                 max={100}
                 className="w-20"
+                disabled
+                title="Applied from Phase 3 (needs pageview data)"
                 value={value.maxPopularityPercentile}
                 onChange={(e) =>
                   set("maxPopularityPercentile", Number(e.target.value))
@@ -236,6 +250,8 @@ export function WalkConfigurationForm({
               <RetroInput
                 id="geo-bounds"
                 className="w-40"
+                disabled
+                title="Applied from Phase 3 (needs Wikidata metadata)"
                 value={value.geographicBounds}
                 placeholder="e.g. Mediterranean world"
                 onChange={(e) => set("geographicBounds", e.target.value)}
@@ -246,6 +262,8 @@ export function WalkConfigurationForm({
                 id="temporal-start"
                 type="number"
                 className="w-24"
+                disabled
+                title="Applied from Phase 3 (needs Wikidata metadata)"
                 value={value.temporalBounds.start ?? ""}
                 placeholder="unbounded"
                 onChange={(e) =>
@@ -262,6 +280,8 @@ export function WalkConfigurationForm({
                 id="temporal-end"
                 type="number"
                 className="w-24"
+                disabled
+                title="Applied from Phase 3 (needs Wikidata metadata)"
                 value={value.temporalBounds.end ?? ""}
                 placeholder="unbounded"
                 onChange={(e) =>
@@ -364,14 +384,27 @@ export function WalkConfigurationForm({
 
       <div className="flex flex-wrap items-center gap-2">
         <RetroButton
-          disabled
-          disabledReason="Arrives in Phase 2 (Wikipedia walk engine)"
+          primary
+          onClick={walk.onGenerate}
+          disabled={walk.busy || dirty}
+          disabledReason={
+            dirty
+              ? "Save the configuration first — the walk runs from the persisted configuration"
+              : "A walk is already running"
+          }
         >
-          Generate walk
+          {walk.busy ? "Walking…" : "Generate walk"}
         </RetroButton>
         <RetroButton
-          disabled
-          disabledReason="Arrives in Phase 2 (Wikipedia walk engine)"
+          onClick={walk.onRegenerateSameSeed}
+          disabled={walk.busy || dirty || !walk.hasWalk}
+          disabledReason={
+            !walk.hasWalk
+              ? "No previous walk to regenerate"
+              : dirty
+                ? "Save the configuration first"
+                : "A walk is already running"
+          }
         >
           Regenerate with same seed
         </RetroButton>
@@ -404,6 +437,15 @@ export function WalkConfigurationForm({
         </span>
         {saveError && <span className="text-[11px] text-warn">{saveError}</span>}
       </div>
+      {(walk.jobLabel || walk.error) && (
+        <div className="bevel-in px-2 py-1 text-[11px]">
+          {walk.error ? (
+            <span className="text-warn">Walk failed: {walk.error}</span>
+          ) : (
+            <span className="text-ink-dim">{walk.jobLabel}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

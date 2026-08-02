@@ -68,18 +68,34 @@ Phase 1 addendum — deployment and mobile:
       home screen (no service worker by design — offline caching of a
       database-backed workbench would misrepresent persisted state)
 
-### Phase 2 — Wikipedia random walk
+### Phase 2 — Wikipedia random walk  ✅
 
-- MediaWiki Action API integration (resolution, links, extracts, metadata,
-  categories) with response caching keyed by canonical identifier, polite
-  throttling, descriptive User-Agent
-- Exclusion rules (disambiguation/list/category pages, min length, revisits)
-- Deterministic seeded PRNG (seedrandom); never `Math.random()`
-- Walk engine: bounded requests, visited-node list, SourceNode persistence
-- Raw flowchart of the visited path
-- Job table + streaming progress for the long-running walk route
+- [x] MediaWiki Action API gateway: resolution (title/URL/topic/random),
+      outgoing links with capped continuation, batched info/extracts,
+      per-process response cache, polite serial requests, descriptive
+      User-Agent
+- [x] Exclusion rules: disambiguation, list/index/outline/timeline pages,
+      calendar pages, min article length, revisit prevention
+- [x] Deterministic seeded PRNG (in-repo xmur3+sfc32 pinned by golden-value
+      tests — equivalent to seedrandom, zero-dependency); never
+      `Math.random()`
+- [x] Walk engine over a gateway interface: hard request budget (counts HTTP
+      requests, aborts gracefully keeping progress), candidate pools recorded
+      per hop with exclusion reasons
+- [x] Raw flowchart of the visited path with edges labeled ADJACENCY (never
+      warrant); node click → inspector dossier (summary, categories,
+      Wikidata id, candidate pool audit)
+- [x] GenerationJob table + background job execution + UI polling with live
+      progress
+- [x] Deterministic fixture gateway (`WIKIPEDIA_MODE=fixture`) mirroring the
+      demonstration chain, powering tests and offline development
 
-**Acceptance:** same seed + configuration ⇒ same path.
+**Acceptance (met):** same seed + configuration ⇒ same path — verified at
+engine level, service level, and over HTTP.
+
+Deferred within Phase 2, honestly surfaced in the UI as disabled fields:
+max popularity percentile (needs pageview data), temporal/geographic bounds
+(need Wikidata metadata) — both arrive with Phase 3 enrichment.
 
 ### Phase 3 — criteriological walk
 

@@ -18,26 +18,34 @@ analogical, and speculative transitions.
 
 ## Status
 
-**Phase 1 (repository and shell) — complete.**
+**Phases 1–2 complete: shell + deterministic Wikipedia random walk.**
 
 Working now:
 
-- Project creation, listing, and reopening, persisted in SQLite (a project
-  survives a browser refresh and a server restart)
-- The three-panel workbench: walk configuration (top), editable flowchart
-  canvas (left), Draft 0 (right), evidence/transition inspector (bottom)
-- The full walk-configuration form — walk mode, starting point, endpoint
-  strategy, walk parameters, sixteen criteriological weights, path
-  description, historical-consciousness controls — validated by Zod and
-  persisted per project
-- Domain schema for the entire pipeline (source nodes, narrative nodes, typed
-  edges with warrant classes, draft segments, generation jobs)
-- `LanguageModelProvider` interface with a deterministic mock provider that
-  never invents unregistered content
+- Project creation, listing, and reopening, persisted in SQLite
+- **Generate walk**: resolves the starting point (exact title, URL,
+  free-text topic, or random article), then walks live Wikipedia with a
+  seeded PRNG — same seed and configuration always reproduce the same path.
+  Exclusion rules drop disambiguation/list/calendar pages and short stubs;
+  a hard request budget bounds API usage; polite throttling and a
+  descriptive User-Agent keep the client well-behaved
+- **Regenerate with same seed** reproduces the previous path (including a
+  previously random start)
+- The visited path renders in the flowchart with edges labeled ADJACENCY —
+  a hyperlink hop is never presented as historical warrant. Clicking a node
+  opens its dossier in the inspector: summary, categories, Wikidata id, and
+  the audited candidate pool (what else was considered, what was excluded
+  and why)
+- Walks run as background jobs with live progress in the UI
+- `WIKIPEDIA_MODE=fixture` swaps live Wikipedia for a deterministic
+  demonstration graph (touchstone → coinage → … → radar) for offline
+  development and tests
+- The three-panel workbench, full configuration form, domain schema for the
+  entire pipeline, and the `LanguageModelProvider` interface with a
+  deterministic mock provider
 
-Buttons for later phases (Generate walk, Re-score, Compose, Export) are
-rendered disabled and say which phase activates them. See [PLAN.md](PLAN.md)
-for the phase roadmap and remaining risks.
+Actions for later phases (Re-score, Compose, Export) stay disabled and say
+which phase activates them. See [PLAN.md](PLAN.md) for the roadmap.
 
 ## Getting started
 
