@@ -73,7 +73,7 @@ desktop home screen from the browser menu.
 
 The app is deployed through Fly's **Launch an App from GitHub** flow, which
 builds the repository Dockerfile on Fly's builders and redeploys on push to
-`main`. `fly.toml` carries the app name (`walkengine-wk5fgq`), the `/data`
+`main`. `fly.toml` carries the app name (`walkengine`), the `/data`
 volume mount, forced HTTPS, and a health check on `/api/projects`. In the
 launcher, leave env vars, Postgres, working directory, and config path at
 their defaults — the fly.toml is at the repo root and SQLite needs no

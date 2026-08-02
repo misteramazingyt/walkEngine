@@ -145,7 +145,7 @@ segmentation, or user edits.
 - The runtime image still ships full node_modules. Switching to Next.js
   standalone output would shrink it considerably; deferred until the native
   better-sqlite3 dependency-tracing path is worth verifying.
-- Deploys go through Fly's GitHub launcher app (`walkengine-wk5fgq`), which
+- Deploys go through Fly's GitHub launcher app (`walkengine`), which
   deploys on push to main. Development happens on the phase branch; merging
   to main is the deploy action.
 

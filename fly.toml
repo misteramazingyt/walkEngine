@@ -8,7 +8,7 @@
 # `app` matches the app created by Fly's "Launch from GitHub" flow, which
 # also handles deploy-on-push; there is no separate CI workflow.
 
-app = "walkengine-wk5fgq"
+app = "walkengine"
 primary_region = "ord"
 
 [build]
