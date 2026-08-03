@@ -25,6 +25,14 @@ export interface ScriptOracle {
     title: string;
     summary: string;
     previousProse: string;
+    /** The object whose understanding accumulates, and the question asked. */
+    objectOfInquiry: string;
+    question: string;
+    stance: string;
+    /** Determinations established so far, numbered as the plan numbers them. */
+    ledger: Array<{ index: number; determination: string }>;
+    /** The ones this beat is required to reopen. */
+    revises: Array<{ index: number; determination: string }>;
   }): Promise<{ prose: string; forkSentence: string }>;
 }
 

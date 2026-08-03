@@ -24,6 +24,24 @@ export class LlmScriptOracle implements ScriptOracle {
       system: loadPrompt("write-beat.v1"),
       user: [
         `THE ROUTE IS BUILDING TOWARD: "${input.seed}"`,
+        `OBJECT OF INQUIRY (its understanding must accumulate): ${input.objectOfInquiry}`,
+        `THE QUESTION BEING ASKED OF IT: ${input.question}`,
+        `STANCE: ${input.stance}`,
+        `THIS BEAT IS A ${input.step.beatKind.toUpperCase()}`,
+        input.ledger.length > 0
+          ? "DETERMINATIONS ESTABLISHED SO FAR:\n" +
+            input.ledger
+              .map((d) => `  [${d.index}] ${d.determination}`)
+              .join("\n")
+          : "",
+        input.revises.length > 0
+          ? "REOPEN THESE — this beat must qualify, complicate or overturn them:\n" +
+            input.revises
+              .map((d) => `  [${d.index}] ${d.determination}`)
+              .join("\n")
+          : "",
+        `WHAT THIS BEAT ADDS: ${input.step.determination}`,
+        `HOW THE OBJECT LOOKS AFTERWARDS: ${input.step.changesTheObject}`,
         `BEAT ${input.index} of ${input.total}`,
         `SUBJECT: ${input.title}`,
         `ENCYCLOPEDIA SUMMARY (real; use its specifics):

@@ -72,3 +72,80 @@ they have watched it being built rather than been argued into it.
 
 Between six and thirty steps. Prefer more: a route of twenty specific things
 is richer than eight general ones, and the specificity is the entertainment.
+
+---
+
+# Accretion — what Burke does not do
+
+Everything above produces movement. Movement alone is what a Connections
+episode gives you: at the end a viewer has gained the knowledge of
+connection and no changed understanding of anything in particular. Measured
+over 653 of his transitions, `return_to_earlier` is 2.3% — almost nothing is
+ever brought back and reconsidered in light of what followed, so nothing
+accumulates.
+
+This route must accumulate. That is the whole difference.
+
+## The object of inquiry
+
+Name an `objectOfInquiry`: the thing whose understanding will change. It is
+NOT the proposition. If the proposition is "the meaning of life is exactly
+what you make it", the object might be *the self that is supposed to do the
+making* — a thing with a history, which the route will show being assembled.
+
+Name the `question` the route keeps asking of it. Existential, in the
+ordinary sense: something a person could be troubled by at four in the
+morning. Not an academic problem.
+
+## Determinations, and the ledger
+
+Every step adds a `determination` — one thing now known about the object
+that was not known before. Not a fact about the step's subject: a fact about
+THE OBJECT, won from that subject.
+
+Every step after the first few also `revises` earlier ones by index: it
+qualifies, complicates, or overturns a determination already on the ledger.
+A route whose determinations never touch each other is a list with
+transitions, which is the failure mode being corrected. Aim for most steps
+to revise at least one earlier step, and for some to overturn.
+
+`changesTheObject` says how the object looks different once this
+determination is on the ledger.
+
+## Beat kinds
+
+Most steps are `advance`. Two other kinds are required:
+
+- `recapitulate` — roughly every fifth step, a step whose work is to state
+  the object as it now stands, with the determinations so far held together.
+  This is where accumulation becomes visible to a reader rather than merely
+  true of the ledger. It should feel like a rest and a reckoning.
+- `intervene` — at least once, late: turn what has accumulated on a present
+  argument, preferably a digital one. Not "and today we see this in social
+  media" as a closing gesture, but the accumulated determinations doing real
+  work against a position someone currently holds.
+
+## Stance
+
+Choose `stance`:
+
+- `sedimentation` — what now looks natural and self-evident is a deposit of
+  contingencies, none of which had to happen. The reader should end unable
+  to see the obvious thing as obvious.
+- `contested_victory` — the present conception was fought for and won
+  against live alternatives, and the fight cost something. The reader should
+  end knowing what was defeated.
+
+Frame every fork in the stance you chose. The same fork reads differently
+under each, and mixing them produces a route that argues with itself.
+
+## The test
+
+`openingUnderstanding` is the object as a reader already sees it, in terms
+they already have. `closingUnderstanding` is the same object in terms only
+this route makes available.
+
+If the closing could be paraphrased from the opening, nothing accreted and
+the route has failed however pleasant its movement. Write the closing so
+that it uses at least three determinations that the opening could not have
+stated.

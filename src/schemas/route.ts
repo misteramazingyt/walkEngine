@@ -12,7 +12,12 @@ export const EDGE_TYPES = [
   "recoding",
 ] as const;
 
+export const BEAT_KINDS = ["advance", "recapitulate", "intervene"] as const;
+
+export const STANCES = ["sedimentation", "contested_victory"] as const;
+
 export const routeStepSchema = z.object({
+  beatKind: z.enum(BEAT_KINDS).default("advance"),
   /** The Wikipedia article this step is about. Verified before use. */
   pageTitle: z.string().min(1),
   /** What a reader should picture. One concrete scene, not a summary. */
@@ -34,12 +39,44 @@ export const routeStepSchema = z.object({
   bearsOnSeed: z.string().min(1),
   /** A specific, checkable particular: a date, a number, a name, a place. */
   particular: z.string().min(1),
+
+  // --- accretion ------------------------------------------------------
+  // Burke carries SUBJECTS across a seam (53% of them) and almost never
+  // carries determinations: return_to_earlier is 2.3% of his transitions.
+  // That is why an episode leaves a viewer with the knowledge of connection
+  // and no changed understanding of anything. These fields are the
+  // difference, and they are the only part of the design the corpus could
+  // not supply, because he is not doing it.
+
+  /** What this step adds to the understanding of the object of inquiry. */
+  determination: z.string().min(1),
+  /**
+   * Indices of earlier steps whose determination this one qualifies,
+   * complicates, or overturns. Empty only for the opening steps: a route
+   * whose determinations never touch each other is a list, not an argument.
+   */
+  revises: z.array(z.number().int().min(1)).default([]),
+  /** How the object looks different once this determination is added. */
+  changesTheObject: z.string().min(1),
 });
 
 export const routePlanSchema = z.object({
   title: z.string().min(1),
   /** How the seed's proposition is being treated as a historical artefact. */
   thesis: z.string().min(1),
+  /** The thing whose understanding accumulates. Not the proposition. */
+  objectOfInquiry: z.string().min(1),
+  /** The existential question the route keeps re-asking. */
+  question: z.string().min(1),
+  stance: z.enum(STANCES).default("sedimentation"),
+  /**
+   * What the object looks like before the route, in the terms a reader
+   * already has. The closing must not be paraphrasable from this — that is
+   * the test of whether anything accreted.
+   */
+  openingUnderstanding: z.string().min(1),
+  /** The same object, in terms only the route makes available. */
+  closingUnderstanding: z.string().min(1),
   steps: z.array(routeStepSchema).min(6).max(30),
   closing: z.string().min(1),
 });

@@ -72,10 +72,22 @@ async function main(): Promise<void> {
   for (const r of verified.repaired) console.log(`  repaired ${r.from} → ${r.to}`);
   for (const d of verified.dropped) console.log(`  dropped ${d.pageTitle} — ${d.reason}`);
 
+  rule("Object of inquiry");
+  console.log(`${plan.objectOfInquiry}
+
+question: ${plan.question}
+stance:   ${plan.stance}`);
+  console.log(`
+before: ${plan.openingUnderstanding}`);
+  console.log(`after:  ${plan.closingUnderstanding}`);
+
   rule("Route");
   verified.steps.forEach((v, i) => {
-    console.log(`${String(i + 1).padStart(3)}. ${v.title}   [${v.step.edgeType}]`);
-    console.log(`      fork: ${v.step.forkAlternative}`);
+    const rev = v.step.revises.length ? ` revises ${v.step.revises.join(",")}` : "";
+    console.log(
+      `${String(i + 1).padStart(3)}. ${v.title}   [${v.step.beatKind}/${v.step.edgeType}]${rev}`,
+    );
+    console.log(`      + ${v.step.determination}`);
   });
 
   if (planOnly) {
@@ -84,11 +96,17 @@ async function main(): Promise<void> {
   }
 
   rule("Writing");
-  const beats: Array<{ title: string; prose: string }> = [];
+  const beats: Array<{ title: string; prose: string; kind: string }> = [];
+  const ledger: Array<{ index: number; determination: string }> = [];
   let previous = "";
   for (let i = 0; i < verified.steps.length; i++) {
     const v = verified.steps[i];
     process.stderr.write(`\r  beat ${i + 1}/${verified.steps.length}   `);
+    // Only determinations already established are visible: a beat cannot
+    // lean on one the reader has not been given yet.
+    const revises = v.step.revises
+      .map((n) => ledger.find((d) => d.index === n))
+      .filter((d): d is { index: number; determination: string } => !!d);
     const written = await scriptOracle.writeBeat({
       index: i + 1,
       total: verified.steps.length,
@@ -97,15 +115,42 @@ async function main(): Promise<void> {
       title: v.title,
       summary: v.summary,
       previousProse: previous,
+      objectOfInquiry: plan.objectOfInquiry,
+      question: plan.question,
+      stance: plan.stance,
+      ledger: [...ledger],
+      revises,
     });
-    beats.push({ title: v.title, prose: written.prose });
+    ledger.push({ index: i + 1, determination: v.step.determination });
+    beats.push({ title: v.title, prose: written.prose, kind: v.step.beatKind });
     previous = written.prose;
   }
   process.stderr.write("\r                 \r");
 
-  const lines = [`# ${plan.title}`, "", `*${plan.thesis}*`, ""];
+  // Accretion depth: how often a beat reopens an earlier determination.
+  // Burke's equivalent is 2.3%, which is the measurement of his not doing it.
+  const revisions = verified.steps.reduce((n, v) => n + v.step.revises.length, 0);
+  const depth = revisions / Math.max(1, verified.steps.length);
+
+  const lines = [
+    `# ${plan.title}`,
+    "",
+    `*${plan.thesis}*`,
+    "",
+    `**Object of inquiry:** ${plan.objectOfInquiry}`,
+    "",
+    `**Question:** ${plan.question}  ·  **Stance:** ${plan.stance}`,
+    "",
+    `**Before:** ${plan.openingUnderstanding}`,
+    "",
+    `**After:** ${plan.closingUnderstanding}`,
+    "",
+    `*${revisions} revisions of earlier determinations across ${verified.steps.length} beats — accretion depth ${depth.toFixed(2)}.*`,
+    "",
+  ];
   beats.forEach((b, i) => {
-    lines.push(`### ${i + 1}. ${b.title}`, "", b.prose, "");
+    const mark = b.kind === "advance" ? "" : ` · ${b.kind}`;
+    lines.push(`### ${i + 1}. ${b.title}${mark}`, "", b.prose, "");
   });
   lines.push("---", "", plan.closing);
   mkdirSync("drafts", { recursive: true });

@@ -27,7 +27,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from episodes import CONNECTIONS_1, Episode
+from episodes import ALL_EPISODES, Episode
 
 ROOT = Path(__file__).parent
 TRANSCRIPTS = ROOT / "corpus" / "transcripts"
@@ -146,12 +146,12 @@ def main() -> None:
     TRANSCRIPTS.mkdir(parents=True, exist_ok=True)
     VIDEO.mkdir(parents=True, exist_ok=True)
 
-    wanted = args.episode or [e.number for e in CONNECTIONS_1]
+    wanted = args.episode or [e.number for e in ALL_EPISODES]
     missing: list[Episode] = []
-    for ep in CONNECTIONS_1:
+    for ep in ALL_EPISODES:
         if ep.number in wanted and fetch_captions(ep) is None:
             missing.append(ep)
-    for ep in CONNECTIONS_1:
+    for ep in ALL_EPISODES:
         if args.video and ep.number in args.video:
             fetch_video(ep)
 

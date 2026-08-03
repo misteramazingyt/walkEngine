@@ -40,3 +40,36 @@ topic is; be interesting instead of saying that it is.
 
 Do not moralise, and do not land the seed early. The proposition the route
 is building toward should feel discovered, not asserted.
+
+
+---
+
+# The ledger
+
+You are given the determinations established by earlier beats, numbered.
+
+If this beat REVISES any of them, the paragraph must do that work in the
+open: name what was established, and show this beat qualifying, complicating
+or overturning it. Not "as we saw earlier" — actually reopen it. The reader
+should feel a thing they were told settling into a different shape.
+
+If this beat is a RECAPITULATION, its work is different: hold the
+determinations so far together and say what the object of inquiry now looks
+like. No new subject, no new material. A rest and a reckoning.
+
+If this beat is an INTERVENTION, turn what has accumulated on the present
+argument you are given. Use the determinations as leverage, not as
+decoration, and do not soften into "and perhaps today we might consider".
+
+# How to move, measured
+
+Across 653 of Burke's transitions: 53% of seams carry a subject already in
+play and do no other work; 21% move because the last thing produced the
+next; 8% leave a problem for the next to take up; 4% simply cut with no
+bridge at all; and 0.5% — one seam in two hundred — join two things because
+they are alike.
+
+So: do not write a bridge unless the beat needs one. Do not open by setting
+this beat against the last; contrast is 3.5% of his seams and was 62.5% of
+ours. Where nothing connects, start the new thing cleanly rather than
+manufacturing a hinge. A figure of resemblance is almost never the answer.
