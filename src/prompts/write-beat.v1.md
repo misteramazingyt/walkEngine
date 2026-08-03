@@ -148,13 +148,25 @@ not the one that comes easiest.
 
 **Chronology is not a bridge.** "Centuries later", "by the 1600s", "over
 time", "meanwhile" — none of these appear in the measured vocabulary. They
-say when, not why, and a reader learns nothing from them. If you find
-yourself writing one, the bridge kind you were given has not been realised.
+say when, not why, and a reader learns nothing from them.
+
+**Nor is co-occurrence.** "Parallel to", "alongside", "at the same time",
+"likewise", "similarly", "in a related development" — these assert that two
+things sat near each other and leave the reader to supply the connection
+that is your job. They are the commonest way a `consequence` seam gets
+written without any consequence in it.
+
+A `consequence` bridge must name the MECHANISM: what the previous subject
+did, made possible, made necessary, or made cheap, such that this one
+follows. If you cannot name that mechanism, say so in the prose by using a
+different move — a clean cut is honest and co-occurrence is not.
 
 # End on your own subject
 
-The last sentence of this beat must be about the beat's own subject. Do not
-close by naming a subject that is coming, and do not gesture forward.
+The last sentence of this beat must be about the beat's own subject, and it
+must not name any other subject at all. No "laying the groundwork for", no
+"hinting at what would become", no "paving the way". Those are forward
+gestures wearing a consequence's clothes.
 Measured: the bridging text sits at the head of the incoming paragraph 288
 times against 3 at the tail of the outgoing one. Mention your supporting
 cast in the body, never in the final sentence.

@@ -157,9 +157,19 @@ export function assignBridgeKinds(plan: RoutePlan): void {
     const preference = closing
       ? ["return_to_earlier", "consequence", "hard_cut", "contrast"]
       : BRIDGE_MIX.filter(([k]) => k !== "carried_subject").map(([k]) => k);
+    // A consequence seam requires an actual production. The planner says
+    // which subject each cast member brings about; where it says nothing,
+    // dealing `consequence` asks the writer to realise a link that is not
+    // there, and it comes back as "parallel to" or "alongside".
+    const prevId = plan.steps[i - 1].subjectId;
+    const prev = plan.cast.find((c) => c.id === prevId);
+    const produces = prev?.producesSubjectId === plan.steps[i].subjectId;
+    const allowed = produces
+      ? preference
+      : preference.filter((k) => k !== "consequence");
     const pick =
-      preference.find((k) => (quota.get(k) ?? 0) > 0) ??
-      (closing ? "consequence" : "consequence");
+      allowed.find((k) => (quota.get(k) ?? 0) > 0) ??
+      (produces ? "consequence" : "hard_cut");
     plan.steps[i].bridgeKind = pick as RoutePlan["steps"][number]["bridgeKind"];
     quota.set(pick, (quota.get(pick) ?? 0) - 1);
   }

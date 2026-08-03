@@ -173,7 +173,12 @@ before: ${plan.openingUnderstanding}`);
     const revises = st.revises
       .map((n) => ledger.find((d) => d.index === n))
       .filter((d): d is { index: number; determination: string } => !!d);
+    // Withhold the NEXT beat's subject. Given it in the supporting cast,
+    // beats kept ending on "laying the groundwork for X" — the hand-off
+    // Burke makes 3 times in 647 seams. It can still be planted earlier.
+    const nextId = plan.steps[i + 1]?.subjectId;
     const supporting = braid.supportingAt[i]
+      .filter((id) => id !== nextId)
       .map((id) => verified.subjects.get(id))
       .filter((v): v is NonNullable<typeof v> => !!v)
       .map((v) => ({
