@@ -12,7 +12,7 @@ export const EDGE_TYPES = [
   "recoding",
 ] as const;
 
-export const BEAT_KINDS = ["advance", "recapitulate", "intervene"] as const;
+export const BEAT_KINDS = ["open", "advance", "recapitulate", "intervene", "close"] as const;
 
 export const STANCES = ["sedimentation", "contested_victory"] as const;
 
@@ -58,6 +58,16 @@ export const routeStepSchema = z.object({
   revises: z.array(z.number().int().min(1)).default([]),
   /** How the object looks different once this determination is added. */
   changesTheObject: z.string().min(1),
+  /**
+   * The transition into this beat, written as its FIRST clause. Measured
+   * over 653 of Burke's seams, the bridge sits at the head of the incoming
+   * paragraph 288 times and at the tail of the outgoing one 3 times. A beat
+   * ends on its own material; the next beat reaches back, never the reverse.
+   * Empty where the beat should simply cut.
+   */
+  entry: z.string().default(""),
+  /** Words this beat should run to, from the piece's total budget. */
+  words: z.number().int().min(40).max(600).default(110),
 });
 
 export const routePlanSchema = z.object({

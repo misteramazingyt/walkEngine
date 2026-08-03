@@ -12,6 +12,10 @@ export class FixtureBriefOracle implements BriefOracle {
     const seedText = split > 0 ? trimmed.slice(0, split + 1) : trimmed;
     const attention = split > 0 ? trimmed.slice(split + 2) : "";
     return {
+      targetWords: null,
+      density: "sparse" as const,
+      namedConnections: [],
+      thesis: "",
       seedText,
       attentionProgram: attention.length > 0 ? attention : "fixture: no attention text",
       temporalStart: null,

@@ -25,11 +25,26 @@ alternative sit there being plausible before the reader learns it lost.
 The fork is why this is a story rather than a sequence. Necessity has no
 tension: if each thing had to follow, there is nothing to watch.
 
-## Join, do not summarise
+## Where the transition goes — measured
 
-You are given the previous beat. Continue from where it ended and go
-somewhere. Never open by restating it. Never announce structure — no "as we
-shall see", no "this brings us to", no "another thread".
+You are given the previous beat and an ENTRY clause.
+
+End this beat on its OWN material. Do not close by gesturing at what comes
+next, do not foreshadow, do not hand off. Across 653 of Burke's seams the
+bridging text sits at the head of the incoming paragraph 288 times and at
+the tail of the outgoing one 3 times: he simply stops.
+
+Open with the entry clause, or something close to it, and then leave it
+behind. Where no entry clause is given, begin the beat cleanly — a cut is a
+legitimate move and he uses it.
+
+Never open by restating the previous beat, and never announce structure —
+no "as we shall see", no "this brings us to", no "another thread".
+
+## Length
+
+Write to the WORD BUDGET you are given, within about fifteen percent. A beat
+that runs long is not generous; it is a beat that failed to choose.
 
 ## Voice
 

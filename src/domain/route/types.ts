@@ -43,6 +43,10 @@ export interface RouteOracle {
     temporalStart: number | null;
     temporalEnd: number | null;
     stepTarget: number;
+    targetWords: number;
+    density: string;
+    namedConnections: string[];
+    thesis: string;
   }): Promise<RoutePlan>;
 
   repair(input: {

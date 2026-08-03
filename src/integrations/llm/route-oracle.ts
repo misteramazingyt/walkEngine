@@ -54,6 +54,11 @@ ${input.summary}`,
         `ARISES FROM WHAT CAME BEFORE (${input.step.edgeType}): ${input.step.arisesFrom}`,
         `THE FORK — carry this in the paragraph: ${input.step.forkAlternative}. Had it gone that way: ${input.step.forkWhatWouldDiffer}`,
         `PARTICULAR TO USE: ${input.step.particular}`,
+        `WORD BUDGET FOR THIS BEAT: ${input.step.words}`,
+        input.step.entry.trim()
+          ? `ENTRY — open with this, or close to it, then leave it behind:
+${input.step.entry}`
+          : "NO ENTRY CLAUSE — begin this beat cleanly; a cut is legitimate.",
         input.previousProse
           ? `PREVIOUS BEAT — continue from it:
 ${input.previousProse}`
@@ -81,7 +86,14 @@ export class LlmRouteOracle implements RouteOracle {
         `PROPOSITION: "${input.seed}"`,
         input.attention.trim() ? `ATTENTION:\n${input.attention}` : "",
         period,
-        `Aim for about ${input.stepTarget} steps.`,
+        `WORD BUDGET: about ${input.targetWords} words in total.`,
+        `NUMBER OF BEATS: about ${input.stepTarget}, so roughly ${Math.round(input.targetWords / Math.max(1, input.stepTarget))} words each — vary them.`,
+        `DENSITY: ${input.density}`,
+        input.thesis.trim() ? `THESIS THE PIECE ARGUES: ${input.thesis}` : "",
+        input.namedConnections.length > 0
+          ? "NAMED CONNECTIONS — the material left at the scene; sniff outward from these rather than merely covering them:\n" +
+            input.namedConnections.map((c) => `  · ${c}`).join("\n")
+          : "NAMED CONNECTIONS: none given — the search must do the work.",
       ]
         .filter(Boolean)
         .join("\n\n"),

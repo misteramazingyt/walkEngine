@@ -53,3 +53,34 @@ The walk cannot:
 
 State each of these in the writer's own terms when it applies. "Everything
 was expressible" is the rarer answer, not the polite default.
+
+---
+
+# Length, density, and what the brief already fixes
+
+**targetWords** — if the brief asks for a length in any form ("essay around
+1950 words", "a short piece", "about 3000"), give the number. Null when no
+length is implied. Do not invent one from the ambition of the topic.
+
+**namedConnections** — every relationship the brief ALREADY asserts. "meaning
+as now only a construct — Wittgenstein and Peirce" is a named connection;
+so is "technologies of the self instantiated, not discussed as doctrine".
+List them as given. These are not topics to cover: they are the material
+left at the scene, and the route is expected to sniff outward from them.
+
+**thesis** — the viewpoint the piece argues, where the brief states one.
+Empty where it only gives a direction to look.
+
+**density** — judge how much the brief has already done:
+
+- `dense` — it names several relationships, thinkers, or moves, and largely
+  fixes where the piece ends. The work is reduction and enlivening, not
+  discovery. The ending should be treated as given.
+- `moderate` — it names a direction and one or two relationships. Some of
+  the route is fixed; the rest is to be found.
+- `sparse` — a seed and a mood. Almost nothing is fixed, the ending least of
+  all, and the search must do nearly all the work.
+
+Judge this honestly against what is actually written, not against how
+confident the brief sounds. A long brief that repeats one idea is sparse. A
+short brief naming four thinkers and their relation is dense.

@@ -27,12 +27,14 @@ const rule = (label: string) =>
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   let planOnly = false;
-  let steps = 18;
+  let steps = 0;
+  let words = 0;
   let out = "drafts/script.md";
   const rest: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--plan-only") planOnly = true;
     else if (argv[i] === "--steps") steps = Number(argv[++i]);
+    else if (argv[i] === "--words") words = Number(argv[++i]);
     else if (argv[i] === "--out") out = argv[++i];
     else if (argv[i] === "--brief-file") rest.push(readFileSync(argv[++i], "utf8"));
     else rest.push(argv[i]);
@@ -44,8 +46,25 @@ async function main(): Promise<void> {
   console.log(brief);
 
   const parsed = await createBriefOracle().parse({ brief });
+
+  // The brief's own numbers win unless a flag overrides them. Beat count is
+  // derived from the budget at Burke's median paragraph length rather than
+  // set independently: asking for 1950 words in 18 beats and for beats of
+  // 102 words are the same request, and only one of them can be honoured.
+  const targetWords = words || parsed.targetWords || 1800;
+  const stepTarget = steps || Math.max(6, Math.min(30, Math.round(targetWords / 115)));
+
   rule("Read as");
   console.log(parsed.reading);
+  console.log(
+    `\nlength:  ${targetWords} words in about ${stepTarget} beats` +
+      `\ndensity: ${parsed.density}` +
+      (parsed.thesis ? `\nthesis:  ${parsed.thesis}` : ""),
+  );
+  if (parsed.namedConnections.length > 0) {
+    console.log("\nconnections already given:");
+    for (const c of parsed.namedConnections) console.log(`  · ${c}`);
+  }
 
   const provider = new GeminiProvider();
   const routeOracle = new LlmRouteOracle(provider);
@@ -57,7 +76,11 @@ async function main(): Promise<void> {
     attention: parsed.attentionProgram,
     temporalStart: parsed.temporalStart,
     temporalEnd: parsed.temporalEnd,
-    stepTarget: steps,
+    stepTarget,
+    targetWords,
+    density: parsed.density,
+    namedConnections: parsed.namedConnections,
+    thesis: parsed.thesis,
   });
   console.log(`${plan.title}\n\n${plan.thesis}\n`);
 
@@ -73,10 +96,12 @@ async function main(): Promise<void> {
   for (const d of verified.dropped) console.log(`  dropped ${d.pageTitle} — ${d.reason}`);
 
   rule("Object of inquiry");
-  console.log(`${plan.objectOfInquiry}
+  console.log(
+    `${plan.objectOfInquiry}
 
 question: ${plan.question}
-stance:   ${plan.stance}`);
+stance:   ${plan.stance}`,
+  );
   console.log(`
 before: ${plan.openingUnderstanding}`);
   console.log(`after:  ${plan.closingUnderstanding}`);
@@ -129,7 +154,11 @@ before: ${plan.openingUnderstanding}`);
 
   // Accretion depth: how often a beat reopens an earlier determination.
   // Burke's equivalent is 2.3%, which is the measurement of his not doing it.
-  const revisions = verified.steps.reduce((n, v) => n + v.step.revises.length, 0);
+  const written = beats.reduce((n, b) => n + b.prose.split(/\s+/).length, 0);
+  const revisions = verified.steps.reduce(
+    (n, v, i) => n + v.step.revises.filter((r) => r < i + 1).length,
+    0,
+  );
   const depth = revisions / Math.max(1, verified.steps.length);
 
   const lines = [
@@ -145,7 +174,7 @@ before: ${plan.openingUnderstanding}`);
     "",
     `**After:** ${plan.closingUnderstanding}`,
     "",
-    `*${revisions} revisions of earlier determinations across ${verified.steps.length} beats — accretion depth ${depth.toFixed(2)}.*`,
+    `*${written} words · ${revisions} revisions of earlier determinations across ${verified.steps.length} beats — accretion depth ${depth.toFixed(2)}.*`,
     "",
   ];
   beats.forEach((b, i) => {

@@ -149,3 +149,55 @@ If the closing could be paraphrased from the opening, nothing accreted and
 the route has failed however pleasant its movement. Write the closing so
 that it uses at least three determinations that the opening could not have
 stated.
+
+---
+
+# Length, and where transitions live
+
+You are told a WORD BUDGET and a NUMBER OF BEATS. Give every step a `words`
+figure and make them sum to roughly the budget. Vary them: Burke's
+paragraphs run to a median of 102 words but range widely, and a route of
+identical blocks reads like a list however good the sentences.
+
+The first step is `open` and the last is `close`.
+
+- The `open` beat has one job: get a reader in. Begin in an ordinary scene,
+  concrete and small, with no announcement of what the piece is about. It
+  may be shorter than the others.
+- The `close` beat pushes the reader back out. Where the brief is DENSE, it
+  lands the ending the brief already fixed. Where the brief is SPARSE, it
+  should not pretend to a conclusion the material did not earn — end on the
+  changed question rather than an answer.
+
+## Where the transition goes
+
+Write `entry`: the clause that opens the beat and carries the reader in from
+whatever preceded it.
+
+This is measured, not stylistic preference. Across 653 of Burke's seams the
+bridging text sits at the head of the incoming paragraph 288 times and at
+the tail of the outgoing paragraph 3 times. He does not hand off. A
+paragraph ends on its own material and stops; the next one reaches back.
+
+So: never plan a step that ends by gesturing at what follows. Put the whole
+transition in the next step's `entry`. Leave `entry` empty where the beat
+should simply begin — 4% of his seams cut with no bridge at all, and more in
+the documentaries.
+
+## Density, and how far to wander
+
+You are told the brief's DENSITY and its NAMED CONNECTIONS.
+
+The named connections are material left at the scene. They are not a
+syllabus to cover: they are the scent. Use them to find things the brief did
+NOT name — the pleasure for a reader is in the traversal they could not have
+made themselves, and an academic reader in particular has already made the
+connections they wrote down.
+
+- `dense` — the connections are given and the ending is fixed. Spend the
+  route reducing and enlivening: find the concrete instantiations, the
+  scenes, the particulars that make a named relationship land for someone
+  who has never read any of it. Wander little.
+- `moderate` — honour what is named, and find as much again.
+- `sparse` — almost nothing is fixed. Wander far, and do not manufacture an
+  ending the material has not produced.

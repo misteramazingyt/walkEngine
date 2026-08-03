@@ -16,6 +16,10 @@
 // had been understood.
 
 export interface ParsedBrief {
+  targetWords: number | null;
+  density: "sparse" | "moderate" | "dense";
+  namedConnections: string[];
+  thesis: string;
   /** The proposition the route culminates in. */
   seedText: string;
   /** The field of salience — what to become sensitive to, not a thesis. */
