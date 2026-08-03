@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "braid": "tsx scripts/braid.ts",
-    "walk": "tsx scripts/walk.ts"
+    "walk": "tsx scripts/walk.ts",
+    "script": "tsx scripts/script.ts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.9.1",
