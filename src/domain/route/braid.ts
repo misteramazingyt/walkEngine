@@ -1,0 +1,112 @@
+import type { RoutePlan } from "./types";
+
+// Liveness is arithmetic, so code does it.
+//
+// The planner declares a cast and which subject each beat is about. It is
+// not asked to work out who should still be in play at beat nine such that
+// twelve subjects are live at once — that is a counting problem, and models
+// do counting problems badly while doing the judgment well.
+//
+// Measured targets: Burke keeps 11-16 subjects live simultaneously, 53% of
+// his seams carry the same subject forward, and 70% of all mentions are a
+// subject supporting something else rather than being the topic.
+
+export interface Liveness {
+  /** Subject ids live at each beat, in beat order. */
+  liveAt: string[][];
+  /** Ids this beat should mention without being about them. */
+  supportingAt: string[][];
+  firstBeat: Map<string, number>;
+  lastBeat: Map<string, number>;
+  diagnostics: {
+    beats: number;
+    castSize: number;
+    topicHolders: number;
+    meanBeatsPerTopicSubject: number;
+    medianLiveAtOnce: number;
+    carriedSeamsPct: number;
+  };
+}
+
+function median(xs: number[]): number {
+  if (xs.length === 0) return 0;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+export function computeLiveness(
+  plan: RoutePlan,
+  options: { liveTarget?: number; supportingPerBeat?: number } = {},
+): Liveness {
+  const liveTarget = options.liveTarget ?? 12;
+  const beats = plan.steps.length;
+  const cast = plan.cast.map((c) => c.id);
+
+  // A subject enters shortly before it first holds the topic and stays live
+  // well after it last holds it: that tail is what lets a later beat reopen
+  // it, and its absence is why our drafts scored 1.00 beats per subject.
+  const topicBeats = new Map<string, number[]>();
+  plan.steps.forEach((step, i) => {
+    const list = topicBeats.get(step.subjectId) ?? [];
+    list.push(i);
+    topicBeats.set(step.subjectId, list);
+  });
+
+  // Spread cast members that never hold the topic evenly, so the live set is
+  // populated from the start rather than filling up only as topics accrue.
+  const spanLength = Math.max(3, Math.round((beats * liveTarget) / Math.max(1, cast.length)));
+  const firstBeat = new Map<string, number>();
+  const lastBeat = new Map<string, number>();
+
+  cast.forEach((id, index) => {
+    const held = topicBeats.get(id);
+    if (held && held.length > 0) {
+      const lead = Math.min(2, held[0]);
+      firstBeat.set(id, Math.max(0, held[0] - lead));
+      lastBeat.set(id, Math.min(beats - 1, held[held.length - 1] + spanLength));
+    } else {
+      const start = Math.floor((index / Math.max(1, cast.length)) * beats);
+      firstBeat.set(id, start);
+      lastBeat.set(id, Math.min(beats - 1, start + spanLength));
+    }
+  });
+
+  const liveAt: string[][] = [];
+  const supportingAt: string[][] = [];
+  for (let i = 0; i < beats; i++) {
+    const live = cast.filter(
+      (id) => (firstBeat.get(id) ?? 0) <= i && (lastBeat.get(id) ?? 0) >= i,
+    );
+    liveAt.push(live);
+    const topic = plan.steps[i].subjectId;
+    supportingAt.push(
+      live
+        .filter((id) => id !== topic)
+        .slice(0, options.supportingPerBeat ?? 6),
+    );
+  }
+
+  const holders = [...topicBeats.keys()];
+  let carried = 0;
+  for (let i = 1; i < beats; i++) {
+    if (plan.steps[i].subjectId === plan.steps[i - 1].subjectId) carried += 1;
+  }
+
+  return {
+    liveAt,
+    supportingAt,
+    firstBeat,
+    lastBeat,
+    diagnostics: {
+      beats,
+      castSize: cast.length,
+      topicHolders: holders.length,
+      meanBeatsPerTopicSubject:
+        Math.round((beats / Math.max(1, holders.length)) * 100) / 100,
+      medianLiveAtOnce: median(liveAt.map((l) => l.length)),
+      carriedSeamsPct:
+        Math.round((100 * carried) / Math.max(1, beats - 1) * 10) / 10,
+    },
+  };
+}

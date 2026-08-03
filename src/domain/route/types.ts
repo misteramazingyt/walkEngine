@@ -8,13 +8,7 @@ import type { RoutePlanModel, RouteStepModel } from "@/schemas/route";
 export type RouteStep = RouteStepModel;
 export type RoutePlan = RoutePlanModel;
 
-export interface VerifiedStep {
-  step: RouteStep;
-  /** Resolved article title; differs from the plan when redirected. */
-  title: string;
-  summary: string;
-  url: string;
-}
+
 
 export interface ScriptOracle {
   writeBeat(input: {
@@ -25,6 +19,12 @@ export interface ScriptOracle {
     title: string;
     summary: string;
     previousProse: string;
+    /** Subjects live now, to be mentioned without being explained. */
+    supporting: Array<{ title: string; gloss: string; firstMention: boolean }>;
+    /** The configuration of the beat's own subject. */
+    substrate: string;
+    institution: string;
+    selfUnderstanding: string;
     /** The object whose understanding accumulates, and the question asked. */
     objectOfInquiry: string;
     question: string;
@@ -49,7 +49,11 @@ export interface RouteOracle {
     thesis: string;
   }): Promise<RoutePlan>;
 
+  /** Cast members whose page did not resolve, with real search candidates. */
   repair(input: {
-    failures: Array<{ step: RouteStep; candidates: string[] }>;
+    failures: Array<{
+      step: { pageTitle: string; bearsOnSeed: string };
+      candidates: string[];
+    }>;
   }): Promise<Array<{ pageTitle: string; replacesTitle: string }>>;
 }

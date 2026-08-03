@@ -48,14 +48,20 @@ export class LlmScriptOracle implements ScriptOracle {
 ${input.summary}`,
         `SCENE THE PLANNER WANTED: ${input.step.scene}`,
         `CONFIGURATION:
-  substrate: ${input.step.substrate}
-  institution: ${input.step.institution}
-  self-understanding: ${input.step.selfUnderstanding}`,
+  substrate: ${input.substrate}
+  institution: ${input.institution}
+  self-understanding: ${input.selfUnderstanding}`,
         `ARISES FROM WHAT CAME BEFORE (${input.step.edgeType}): ${input.step.arisesFrom}`,
         `THE FORK — carry this in the paragraph: ${input.step.forkAlternative}. Had it gone that way: ${input.step.forkWhatWouldDiffer}`,
         `SOMEBODY WANTED: ${input.step.someoneWanted}`,
         `THEY TRIED: ${input.step.whatTheyTried}`,
         `WHAT HAPPENED INSTEAD: ${input.step.whatHappenedInstead}`,
+        input.supporting.length > 0
+          ? "ALSO LIVE — mention these without explaining them; seven of ten of Burke's mentions are a subject helping account for something else:\n" +
+            input.supporting
+              .map((x) => `  ${x.title}${x.firstMention ? " [first mention — introduce indefinitely]" : ""}: ${x.gloss}`)
+              .join("\n")
+          : "",
         `PARTICULAR TO USE: ${input.step.particular}`,
         `WORD BUDGET FOR THIS BEAT: ${input.step.words}`,
         input.step.entry.trim()

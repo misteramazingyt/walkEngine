@@ -233,3 +233,34 @@ individual. Fifteen identical surprises are not surprises.
 So `whatHappenedInstead` must differ in KIND from its neighbours. Some beats
 should not turn at all — half of Burke's do not. A beat that simply reports
 clearly is a rest, and rests are what make the next turn land.
+
+---
+
+# The cast, and why a subject must outlive its beat
+
+Measured over Burke: 53% of his seams carry the SAME subject forward, he
+keeps 11 to 16 subjects live at once, and 70% of all mentions are a subject
+helping account for something else rather than being the topic.
+
+Our drafts scored 1.00 beats per subject — every subject appeared in exactly
+one paragraph and was never heard from again. Six beats, six subjects, no
+overlap. That is why they read as brief descriptions tied together with
+nothing accumulating: nothing was ever in play long enough to accumulate.
+
+So declare a `cast` FIRST, and then the beats.
+
+- The cast is LARGER than the number of beats. Many of its members never
+  hold the topic at all; they exist to be mentioned while something else is
+  being explained, which is where seven mentions in ten actually go.
+- Give each a `gloss`: one clause a beat can use when naming it in passing,
+  without stopping to explain it.
+- Each beat names its `subjectId`. **Give roughly half your beats the same
+  subject as the beat before.** A subject that holds two or three beats is
+  the normal case, not the exception — that is what 53% carried seams means.
+- Bring subjects BACK. A subject that held the topic early should return
+  later under a determination it did not have the first time. Burke does
+  this rarely; you should do it more, because accumulation is the thing he
+  does not do and we are trying to.
+
+Which subjects are live at each beat is worked out from your cast and topic
+order by the software. Do not try to manage it.

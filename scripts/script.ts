@@ -15,6 +15,7 @@
 import "dotenv/config";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { verifyRoute } from "@/domain/route/verify";
+import { computeLiveness } from "@/domain/route/braid";
 import { RequestBudget } from "@/domain/walk/types";
 import { WikipediaGateway } from "@/integrations/wikipedia/gateway";
 import { GeminiProvider } from "@/integrations/gemini/provider";
@@ -29,13 +30,13 @@ async function main(): Promise<void> {
   let planOnly = false;
   let steps = 0;
   let words = 0;
-  let out = "drafts/script.md";
+  let out2 = "drafts/script.md";
   const rest: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--plan-only") planOnly = true;
     else if (argv[i] === "--steps") steps = Number(argv[++i]);
     else if (argv[i] === "--words") words = Number(argv[++i]);
-    else if (argv[i] === "--out") out = argv[++i];
+    else if (argv[i] === "--out") out2 = argv[++i];
     else if (argv[i] === "--brief-file") rest.push(readFileSync(argv[++i], "utf8"));
     else rest.push(argv[i]);
   }
@@ -47,8 +48,7 @@ async function main(): Promise<void> {
 
   const parsed = await createBriefOracle().parse({ brief });
 
-  // The brief's own numbers win unless a flag overrides them. Beat count is
-  // derived from the budget at Burke's median paragraph length rather than
+  // The brief's own numbers win unless a flag overrides them. Beat count is\n// derived from the budget at Burke's median paragraph length rather than
   // set independently: asking for 1950 words in 18 beats and for beats of
   // 102 words are the same request, and only one of them can be honoured.
   const targetWords = words || parsed.targetWords || 1800;
@@ -88,12 +88,18 @@ async function main(): Promise<void> {
   const gateway = new WikipediaGateway("en", new RequestBudget(400));
   const verified = await verifyRoute({ plan, wikipedia: gateway, oracle: routeOracle });
   console.log(
-    `${verified.steps.length} of ${plan.steps.length} steps verified` +
+    `${verified.subjects.size} of ${plan.cast.length} cast verified` +
       ` · ${verified.repaired.length} repaired · ${verified.dropped.length} dropped` +
       ` · ${gateway.requestsUsed()} requests`,
   );
   for (const r of verified.repaired) console.log(`  repaired ${r.from} → ${r.to}`);
   for (const d of verified.dropped) console.log(`  dropped ${d.pageTitle} — ${d.reason}`);
+
+  // Beats whose subject did not survive verification cannot be written.
+  plan.steps = plan.steps.filter((st) => verified.subjects.has(st.subjectId));
+  if (plan.steps.length === 0) throw new Error("No beats survived verification");
+
+  const braid = computeLiveness(plan, { liveTarget: 12 });
 
   rule("Object of inquiry");
   console.log(
@@ -106,13 +112,17 @@ stance:   ${plan.stance}`,
 before: ${plan.openingUnderstanding}`);
   console.log(`after:  ${plan.closingUnderstanding}`);
 
-  rule("Route");
-  verified.steps.forEach((v, i) => {
-    const rev = v.step.revises.length ? ` revises ${v.step.revises.join(",")}` : "";
-    console.log(
-      `${String(i + 1).padStart(3)}. ${v.title}   [${v.step.beatKind}/${v.step.edgeType}]${rev}`,
-    );
-    console.log(`      + ${v.step.determination}`);
+  rule("Braid");
+  console.log(JSON.stringify(braid.diagnostics, null, 1));
+
+  rule("Beats");
+  plan.steps.forEach((st, i) => {
+    const subj = verified.subjects.get(st.subjectId)!;
+    const support = braid.supportingAt[i]
+      .map((id) => verified.subjects.get(id)?.title)
+      .filter(Boolean);
+    console.log(`${String(i + 1).padStart(3)}. ${subj.title}  [${st.beatKind}]`);
+    console.log(`      with: ${support.join(", ") || "—"}`);
   });
 
   if (planOnly) {
@@ -123,43 +133,55 @@ before: ${plan.openingUnderstanding}`);
   rule("Writing");
   const beats: Array<{ title: string; prose: string; kind: string }> = [];
   const ledger: Array<{ index: number; determination: string }> = [];
+  const introduced = new Set<string>();
   let previous = "";
-  for (let i = 0; i < verified.steps.length; i++) {
-    const v = verified.steps[i];
-    process.stderr.write(`\r  beat ${i + 1}/${verified.steps.length}   `);
-    // Only determinations already established are visible: a beat cannot
-    // lean on one the reader has not been given yet.
-    const revises = v.step.revises
+  for (let i = 0; i < plan.steps.length; i++) {
+    const st = plan.steps[i];
+    const subj = verified.subjects.get(st.subjectId)!;
+    process.stderr.write(`
+  beat ${i + 1}/${plan.steps.length}   `);
+    const revises = st.revises
       .map((n) => ledger.find((d) => d.index === n))
       .filter((d): d is { index: number; determination: string } => !!d);
-    const written = await scriptOracle.writeBeat({
+    const supporting = braid.supportingAt[i]
+      .map((id) => verified.subjects.get(id))
+      .filter((v): v is NonNullable<typeof v> => !!v)
+      .map((v) => ({
+        title: v.title,
+        gloss: v.gloss,
+        firstMention: !introduced.has(v.title),
+      }));
+    const out = await scriptOracle.writeBeat({
       index: i + 1,
-      total: verified.steps.length,
+      total: plan.steps.length,
       seed: parsed.seedText,
-      step: v.step,
-      title: v.title,
-      summary: v.summary,
+      step: st,
+      title: subj.title,
+      summary: subj.summary,
       previousProse: previous,
       objectOfInquiry: plan.objectOfInquiry,
       question: plan.question,
       stance: plan.stance,
       ledger: [...ledger],
       revises,
+      supporting,
+      substrate: subj.substrate,
+      institution: subj.institution,
+      selfUnderstanding: subj.selfUnderstanding,
     });
-    ledger.push({ index: i + 1, determination: v.step.determination });
-    beats.push({ title: v.title, prose: written.prose, kind: v.step.beatKind });
-    previous = written.prose;
+    for (const sup of supporting) introduced.add(sup.title);
+    introduced.add(subj.title);
+    ledger.push({ index: i + 1, determination: st.determination });
+    beats.push({ title: subj.title, prose: out.prose, kind: st.beatKind });
+    previous = out.prose;
   }
-  process.stderr.write("\r                 \r");
+  process.stderr.write("    clearing    ");
 
-  // Accretion depth: how often a beat reopens an earlier determination.
-  // Burke's equivalent is 2.3%, which is the measurement of his not doing it.
   const written = beats.reduce((n, b) => n + b.prose.split(/\s+/).length, 0);
-  const revisions = verified.steps.reduce(
-    (n, v, i) => n + v.step.revises.filter((r) => r < i + 1).length,
+  const revisions = plan.steps.reduce(
+    (n, st, i) => n + st.revises.filter((r) => r < i + 1).length,
     0,
   );
-  const depth = revisions / Math.max(1, verified.steps.length);
 
   const lines = [
     `# ${plan.title}`,
@@ -174,7 +196,11 @@ before: ${plan.openingUnderstanding}`);
     "",
     `**After:** ${plan.closingUnderstanding}`,
     "",
-    `*${written} words · ${revisions} revisions of earlier determinations across ${verified.steps.length} beats — accretion depth ${depth.toFixed(2)}.*`,
+    `*${written} words · ${plan.steps.length} beats over ${braid.diagnostics.topicHolders} subjects ` +
+      `(${braid.diagnostics.meanBeatsPerTopicSubject} beats each) · ` +
+      `${braid.diagnostics.medianLiveAtOnce} live at once · ` +
+      `${braid.diagnostics.carriedSeamsPct}% of seams carry the subject forward · ` +
+      `${revisions} revisions.*`,
     "",
   ];
   beats.forEach((b, i) => {
@@ -183,13 +209,14 @@ before: ${plan.openingUnderstanding}`);
   });
   lines.push("---", "", plan.closing);
   mkdirSync("drafts", { recursive: true });
-  writeFileSync(out, lines.join("\n"), "utf8");
+  writeFileSync(out2, lines.join("\n"), "utf8");
 
   for (const b of beats) console.log(`\n### ${b.title}\n\n${b.prose}`);
-  console.log(`\nWritten to ${out}`);
+  console.log(`\nWritten to ${out2}`);
 }
 
 main().catch((e) => {
-  console.error(`\n${e instanceof Error ? e.message : String(e)}`);
+  console.error(`
+${e instanceof Error ? e.message : String(e)}`);
   process.exit(1);
 });

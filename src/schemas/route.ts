@@ -16,16 +16,29 @@ export const BEAT_KINDS = ["open", "advance", "recapitulate", "intervene", "clos
 
 export const STANCES = ["sedimentation", "contested_victory"] as const;
 
-export const routeStepSchema = z.object({
-  beatKind: z.enum(BEAT_KINDS).default("advance"),
-  /** The Wikipedia article this step is about. Verified before use. */
+/**
+ * A member of the cast. Subjects are declared once and referred to by id,
+ * so one can hold the topic across several beats and be mentioned in beats
+ * that are about something else. The previous schema made a step BE a page,
+ * which meant a subject could appear exactly once: every draft measured 1.00
+ * beats per subject, against Burke's 53% of seams carrying one forward.
+ */
+export const routeSubjectSchema = z.object({
+  id: z.string().min(1),
   pageTitle: z.string().min(1),
-  /** What a reader should picture. One concrete scene, not a summary. */
-  scene: z.string().min(1),
-  /** The configuration: substrate, institution, and shape of self-understanding. */
+  /** One clause a beat can use when mentioning this in passing. */
+  gloss: z.string().min(1),
   substrate: z.string().min(1),
   institution: z.string().min(1),
   selfUnderstanding: z.string().min(1),
+});
+
+export const routeStepSchema = z.object({
+  beatKind: z.enum(BEAT_KINDS).default("advance"),
+  /** Which cast member this beat is ABOUT. Several beats may share one. */
+  subjectId: z.string().min(1),
+  /** What a reader should picture. One concrete scene, not a summary. */
+  scene: z.string().min(1),
   edgeType: z.enum(EDGE_TYPES),
   /** How this step arises from the previous one, in its own terms. */
   arisesFrom: z.string().min(1),
@@ -108,7 +121,13 @@ export const routePlanSchema = z.object({
   openingUnderstanding: z.string().min(1),
   /** The same object, in terms only the route makes available. */
   closingUnderstanding: z.string().min(1),
-  steps: z.array(routeStepSchema).min(6).max(30),
+  /**
+   * Everyone in the piece. Larger than the number of topic-holders: Burke
+   * keeps 11 to 16 subjects live at once and 70% of his mentions are a
+   * subject helping explain something else rather than being explained.
+   */
+  cast: z.array(routeSubjectSchema).min(6).max(40),
+  steps: z.array(routeStepSchema).min(4).max(40),
   closing: z.string().min(1),
 });
 
