@@ -174,23 +174,36 @@ export async function runBurkeClusterWalk(options: {
     let narrative = null;
     if (discovered.length > 0 && seedSubject) {
       await report("Composing", seedSubject.label, discovered.length);
-      const wrapAround = await oracle.wrapAround({
-        seedSubject,
-        seedNarration: seedNarration,
-        firstPresentedSubject: reversed[0],
-        accepted: state.acceptedClusters,
-        attention: state.attention,
-      });
-      modelCalls += 1;
-      state.wrapAround = wrapAround;
+      // Composition is the last step and the only optional one: the result
+      // type has always allowed a null narrative. Letting it throw discarded
+      // a completed discovery — six subjects and six hundred archive
+      // requests — because an optional flourish at the end ran out of output
+      // budget. The subjects are the expensive part and they are already
+      // found, so a failure here is recorded and the walk still returns.
+      try {
+        const wrapAround = await oracle.wrapAround({
+          seedSubject,
+          seedNarration: seedNarration,
+          firstPresentedSubject: reversed[0],
+          accepted: state.acceptedClusters,
+          attention: state.attention,
+        });
+        modelCalls += 1;
+        state.wrapAround = wrapAround;
 
-      narrative = await oracle.compose({
-        state,
-        presentationOrder: [...reversed, seedSubject],
-        transitions: state.transitions,
-        wrapAround,
-      });
-      modelCalls += 1;
+        narrative = await oracle.compose({
+          state,
+          presentationOrder: [...reversed, seedSubject],
+          transitions: state.transitions,
+          wrapAround,
+        });
+        modelCalls += 1;
+      } catch (error) {
+        state.rejectedSubjects.push({
+          label: "composition",
+          reason: `narrative not composed: ${error instanceof Error ? error.message : String(error)}`,
+        });
+      }
       state.budget.modelCalls = modelCalls;
     }
 

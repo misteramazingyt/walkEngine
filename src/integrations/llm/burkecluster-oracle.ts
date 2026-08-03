@@ -367,6 +367,8 @@ export class LlmBurkeClusterOracle implements BurkeClusterOracle {
           .join("\n")}`,
       ].join("\n\n"),
       schema: compositionSchema,
+      // A whole narrative: one movement per accepted subject, plus ledger.
+      maxTokens: 32000,
     });
     return result as BurkeClusterNarrative;
   }

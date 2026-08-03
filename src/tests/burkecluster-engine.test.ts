@@ -313,3 +313,24 @@ describe("BurkeCluster seed fidelity", () => {
     expect(swapped).toBe(true);
   });
 });
+
+describe("BurkeCluster composition is optional", () => {
+  it("keeps a completed discovery when the final composition fails", async () => {
+    const oracle = new FixtureBurkeClusterOracle();
+    vi.spyOn(oracle, "compose").mockRejectedValue(
+      new Error("Gemini hit its output ceiling before finishing"),
+    );
+
+    // Six hundred archive requests and every subject found must not be
+    // discarded because an optional closing flourish ran out of budget.
+    const result = await walk({}, {}, oracle);
+
+    expect(result.state.acceptedClusters.length).toBeGreaterThan(0);
+    expect(result.narrative).toBeNull();
+    expect(
+      result.state.rejectedSubjects.some((r) =>
+        /narrative not composed/.test(r.reason),
+      ),
+    ).toBe(true);
+  });
+});
