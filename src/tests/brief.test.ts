@@ -102,3 +102,43 @@ describe("a parsed brief maps onto a runnable configuration", () => {
     expect(parsed.unhonoured.length).toBeGreaterThan(0);
   });
 });
+
+describe("interpretation tolerates omitted optional fields", () => {
+  it("accepts an interpretation that simply has no rejection reason", async () => {
+    const { interpretationSchema } = await import("@/schemas/burkecluster");
+    const scores = Object.fromEntries(
+      [
+        "deficiencyFit", "subjectEmergencePotential", "clusterStability",
+        "complementarity", "historicalSpecificity", "immanentTransitionStrength",
+        "narrativePivotPotential", "personalizedRelevance", "audienceIntelligibility",
+        "concreteAnchorStrength", "attentionProgramFit", "surprise",
+        "endpointReturnPotential", "genericAbstraction", "weakDeficiencyRelation",
+        "semanticRedundancy", "forcedHistoricalRelation", "listPageArtifact",
+        "sensationalDetour", "excessiveObscurity",
+      ].map((k) => [k, 0.5]),
+    );
+    // Exactly the shape a real run produced: an accepted cluster, with the
+    // rejectionReason key simply absent. Requiring it failed the walk after
+    // every archive request had been spent.
+    const parsed = interpretationSchema.parse({
+      interpretations: [
+        {
+          clusterId: "c1",
+          subject: {
+            id: "s1",
+            label: "A subject",
+            type: "practice",
+            centralPageTitle: "A page",
+            synthesized: false,
+            constitutivePages: ["A page"],
+            audienceAnchor: "something to picture",
+          },
+          scores,
+        },
+      ],
+    });
+    expect(parsed.interpretations[0].rejectionReason).toBeNull();
+    expect(parsed.interpretations[0].subjectScores).toBeNull();
+    expect(parsed.interpretations[0].whyThisSubjectOrganizesTheCluster).toBe("");
+  });
+});

@@ -179,11 +179,18 @@ export const interpretationSchema = z.object({
     .array(
       z.object({
         clusterId: z.string().min(1),
-        subject: subjectSchema.nullable(),
+        // Absent and null mean the same thing here, and the model omits a
+        // key far more readily than it emits an explicit null: an accepted
+        // interpretation simply has no rejection reason to give. Requiring
+        // the key failed whole walks late, after every request was spent.
+        subject: subjectSchema.nullish().default(null),
         scores: clusterScoresSchema,
-        subjectScores: subjectScoresSchema.nullable(),
-        whyThisSubjectOrganizesTheCluster: z.string(),
-        rejectionReason: z.string().nullable(),
+        subjectScores: subjectScoresSchema.nullish().default(null),
+        whyThisSubjectOrganizesTheCluster: z
+          .string()
+          .nullish()
+          .transform((v) => v ?? ""),
+        rejectionReason: z.string().nullish().default(null),
       }),
     )
     .min(1),
