@@ -53,6 +53,72 @@ const BRIDGE_MIX: Array<[string, number]> = [
   ["instrument_needed", 0.015],
 ];
 
+/**
+ * How many beats each subject earns.
+ *
+ * Measured over 191 dwell runs in 14 episodes, by why the programme stayed:
+ *
+ *   produces_next          4.78 paragraphs   the strongest predictor
+ *   much_to_tell           4.18
+ *   mechanism_needs_steps  3.19
+ *   stakes_are_here        2.55
+ *   bears_on_destination   1.57              the WEAKEST
+ *
+ * The last of those is the useful surprise: a subject that matters to where
+ * the piece is going gets named and passed, not dwelt upon. Selecting for
+ * thesis-relevance and then lingering — which is what our planner did — is
+ * the opposite of the practice.
+ *
+ * So depth is earned by incident and by causal work, and the arithmetic is
+ * done here because asking a model for a distribution has twice produced a
+ * fifth of what was asked for.
+ */
+export function allocateBeats(
+  plan: RoutePlan,
+  totalBeats: number,
+): Map<string, number> {
+  const weight = new Map<string, number>();
+  for (const member of plan.cast) {
+    const produces = member.producesSubjectId.trim().length > 0;
+    const incident =
+      member.incidents >= 3 ? 2 : member.incidents >= 1 ? 1 : 0;
+    // 1 floor, +2 for producing the next subject, +up to 2 for incident:
+    // a subject with neither is touched once, one with both settles in.
+    weight.set(member.id, Math.min(6, 1 + (produces ? 2 : 0) + incident));
+  }
+
+  const total = [...weight.values()].reduce((a, b) => a + b, 0) || 1;
+  const beats = new Map<string, number>();
+  let assigned = 0;
+  for (const [id, w] of weight) {
+    const n = Math.max(1, Math.round((w / total) * totalBeats));
+    beats.set(id, n);
+    assigned += n;
+  }
+
+  // Trim or extend from the weakest subjects first, so rounding never robs
+  // one that earned its depth.
+  const ranked = [...weight.entries()].sort((a, b) => a[1] - b[1]);
+  let i = 0;
+  while (assigned > totalBeats && i < ranked.length * 4) {
+    const [id] = ranked[i % ranked.length];
+    if ((beats.get(id) ?? 1) > 1) {
+      beats.set(id, (beats.get(id) ?? 1) - 1);
+      assigned -= 1;
+    }
+    i += 1;
+  }
+  const strongest = [...weight.entries()].sort((a, b) => b[1] - a[1]);
+  i = 0;
+  while (assigned < totalBeats && strongest.length > 0) {
+    const [id] = strongest[i % strongest.length];
+    beats.set(id, (beats.get(id) ?? 1) + 1);
+    assigned += 1;
+    i += 1;
+  }
+  return beats;
+}
+
 export function assignBridgeKinds(plan: RoutePlan): void {
   const seams = plan.steps.length - 1;
   if (seams < 1) return;

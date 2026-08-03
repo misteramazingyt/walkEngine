@@ -15,7 +15,7 @@
 import "dotenv/config";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { verifyRoute } from "@/domain/route/verify";
-import { assignBridgeKinds, computeLiveness } from "@/domain/route/braid";
+import { allocateBeats, assignBridgeKinds, computeLiveness } from "@/domain/route/braid";
 import { RequestBudget } from "@/domain/walk/types";
 import { WikipediaGateway } from "@/integrations/wikipedia/gateway";
 import { GeminiProvider } from "@/integrations/gemini/provider";
@@ -98,6 +98,34 @@ async function main(): Promise<void> {
   // Beats whose subject did not survive verification cannot be written.
   plan.steps = plan.steps.filter((st) => verified.subjects.has(st.subjectId));
   if (plan.steps.length === 0) throw new Error("No beats survived verification");
+
+  // Beats earned per subject, from incident and causal work. The planner's
+  // own beat list is reshaped to match: it reliably gives almost every beat
+  // a different subject when asked for a proportion, so the proportion is
+  // computed and the beats redistributed rather than requested.
+  const allocation = allocateBeats(plan, plan.steps.length);
+  const reshaped: typeof plan.steps = [];
+  const order: string[] = [];
+  for (const st of plan.steps) if (!order.includes(st.subjectId)) order.push(st.subjectId);
+  for (const id of order) {
+    const source = plan.steps.filter((st) => st.subjectId === id);
+    const want = allocation.get(id) ?? 1;
+    for (let k = 0; k < want; k++) {
+      reshaped.push({ ...source[Math.min(k, source.length - 1)] });
+    }
+  }
+  plan.steps = reshaped.slice(0, Math.max(4, plan.steps.length));
+
+  rule("Beats earned");
+  for (const id of order) {
+    const m = plan.cast.find((c) => c.id === id);
+    if (!m) continue;
+    console.log(
+      `  ${(verified.subjects.get(id)?.title ?? id).slice(0, 34).padEnd(36)}` +
+        `${allocation.get(id) ?? 1} beats · ${m.incidents} incidents` +
+        `${m.producesSubjectId ? " · produces next" : ""}`,
+    );
+  }
 
   assignBridgeKinds(plan);
   const braid = computeLiveness(plan, { liveTarget: 12 });

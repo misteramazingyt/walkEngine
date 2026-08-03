@@ -97,7 +97,8 @@ export class LlmRouteOracle implements RouteOracle {
         input.attention.trim() ? `ATTENTION:\n${input.attention}` : "",
         period,
         `WORD BUDGET: about ${input.targetWords} words in total.`,
-        `NUMBER OF BEATS: about ${input.stepTarget}, so roughly ${Math.round(input.targetWords / Math.max(1, input.stepTarget))} words each — vary them.`,
+        `NUMBER OF BEATS: exactly ${input.stepTarget}, of roughly ${Math.round(input.targetWords / Math.max(1, input.stepTarget))} words each — vary them.`,
+        `CAST SIZE: aim for about ${Math.max(5, Math.round(input.stepTarget * 0.6))} subjects, so that several hold the floor for more than one beat.`,
         `DENSITY: ${input.density}`,
         input.thesis.trim() ? `THESIS THE PIECE ARGUES: ${input.thesis}` : "",
         input.namedConnections.length > 0
