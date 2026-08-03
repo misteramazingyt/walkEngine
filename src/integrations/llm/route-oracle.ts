@@ -56,16 +56,22 @@ ${input.summary}`,
   institution: ${input.institution}
   self-understanding: ${input.selfUnderstanding}`,
         `ARISES FROM WHAT CAME BEFORE (${input.step.edgeType}): ${input.step.arisesFrom}`,
-        `THE CARRIER — narrate this as something that happened, do not summarise the change: ${input.step.carrier}`,
-        `EVIDENCE FOR IT: ${input.step.carrierEvidence}`,
-        `PRESSURE INHERITED: ${input.step.inheritedPressure}`,
-        `PRESSURE TRANSFORMED INTO: ${input.step.transformedPressure}`,
+        input.step.carrier.trim()
+          ? `THE CARRIER — narrate this as something that happened, do not summarise the change: ${input.step.carrier}
+EVIDENCE FOR IT: ${input.step.carrierEvidence}`
+          : "",
+        input.step.inheritedPressure.trim()
+          ? `PRESSURE INHERITED: ${input.step.inheritedPressure}
+PRESSURE TRANSFORMED INTO: ${input.step.transformedPressure}`
+          : "",
         input.step.forkAlternative.trim().length > 0
           ? `THE FORK — carry this in the paragraph: ${input.step.forkAlternative}. Had it gone that way: ${input.step.forkWhatWouldDiffer}`
           : "NO FORK for this beat — its subject's fork was carried on arrival.",
-        `SOMEBODY WANTED: ${input.step.someoneWanted}`,
-        `THEY TRIED: ${input.step.whatTheyTried}`,
-        `WHAT HAPPENED INSTEAD: ${input.step.whatHappenedInstead}`,
+        input.step.someoneWanted.trim()
+          ? `SOMEBODY WANTED: ${input.step.someoneWanted}
+THEY TRIED: ${input.step.whatTheyTried}
+WHAT HAPPENED INSTEAD: ${input.step.whatHappenedInstead}`
+          : "",
         input.supporting.length > 0
           ? "ALSO LIVE — mention these without explaining them; seven of ten of Burke's mentions are a subject helping account for something else:\n" +
             input.supporting
@@ -119,7 +125,7 @@ export class LlmRouteOracle implements RouteOracle {
         .join("\n\n"),
       schema: routePlanSchema,
       temperature: 0.9,
-      maxTokens: 40000,
+      maxTokens: 60000,
     });
   }
 

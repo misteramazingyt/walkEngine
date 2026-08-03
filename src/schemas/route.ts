@@ -88,13 +88,13 @@ export const routeStepSchema = z.object({
    * spread" is not a carrier; "Cassian carried it to Marseille in 415 and
    * wrote it down for Latin houses" is.
    */
-  carrier: z.string().min(1),
+  carrier: z.string().default(""),
   /** What in the archive supports the carrier, or that nothing does. */
-  carrierEvidence: z.string().min(1),
+  carrierEvidence: z.string().default(""),
   /** What pressure the previous subject was under that this one inherits. */
-  inheritedPressure: z.string().min(1),
+  inheritedPressure: z.string().default(""),
   /** What that pressure became once it arrived here. */
-  transformedPressure: z.string().min(1),
+  transformedPressure: z.string().default(""),
   /**
    * The meta-bridge's first half: what this subject's work left CHANGED in
    * the shared world by the time the route moves on. A law in force, a
@@ -103,7 +103,7 @@ export const routeStepSchema = z.object({
    * it. The next subject's carrier walks into this changed world, and the
    * handoff check judges whether the arrival is actually motivated by it.
    */
-  changedEnvironment: z.string().min(1),
+  changedEnvironment: z.string().default(""),
   /**
    * The road not taken. A causal chain asserts necessity; a contingent
    * traversal exhibits the fork and declines to naturalize it.
@@ -153,9 +153,9 @@ export const routeStepSchema = z.object({
   // anything is not selected in the first place.
 
   /** Who wanted something here, and what. A person or a definite group. */
-  someoneWanted: z.string().min(1),
+  someoneWanted: z.string().default(""),
   /** What they actually did about it. */
-  whatTheyTried: z.string().min(1),
+  whatTheyTried: z.string().default(""),
   /**
    * What happened instead of, or as well as, what they were after. This is
    * the beat's own turn, and it must differ from its neighbours': our draft
@@ -163,7 +163,7 @@ export const routeStepSchema = z.object({
    * same one — meaning shifting from the communal to the individual, fifteen
    * times over. A turn a reader can predict is not a turn.
    */
-  whatHappenedInstead: z.string().min(1),
+  whatHappenedInstead: z.string().default(""),
 });
 
 export const routePlanSchema = z.object({
@@ -206,7 +206,7 @@ export const dwellPhaseSchema = z.object({
   scene: z.string().min(1),
   particular: z.string().min(1),
   /** What moved the subject from the last phase into this one. */
-  carrier: z.string().min(1),
+  carrier: z.string().default(""),
   /** The difficulty this phase's answer created, and for whom. */
   problemCaused: z.string().min(1),
   determination: z.string().min(1),
