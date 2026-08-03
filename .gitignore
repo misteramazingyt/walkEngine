@@ -47,3 +47,9 @@ dev.db-journal
 
 # prisma generated client
 /src/generated/
+
+# Connections corpus: third-party transcripts, video, and derived scene data.
+# Analysed locally to induce narrative rules; never redistributed. The
+# findings written from it are committed, the material itself is not.
+/tools/connections-corpus/corpus/
+/tools/connections-corpus/**/__pycache__/
