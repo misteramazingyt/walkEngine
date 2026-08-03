@@ -157,6 +157,9 @@ export class FixtureBurkeClusterOracle implements BurkeClusterOracle {
       text: `fixture predicate ${i} of ${input.subject.label}`,
       predicateType:
         (["precondition", "transformation", "institutional_function"] as const)[i - 1],
+      // The last predicate is illustrative, so a test can drive the
+      // engine's refusal to chase an account's scenery.
+      role: i === 2 ? ("illustrative" as const) : ("constitutive" as const),
       supportPages: input.subject.constitutivePages.slice(0, 2),
       supportStrength: 0.6,
       explanatoryCompleteness: 0.4,
@@ -333,6 +336,9 @@ export class FixtureBurkeClusterOracle implements BurkeClusterOracle {
       subjectEmergenceExplanation: unlatent
         ? "vague"
         : `fixture: ${label} makes explicit the mechanism that ${input.previousSubject.label} could only invoke in passing`,
+      seedQuestionRelation:
+        "fixture: the new subject still bears on the seed's question because the fixture says so",
+      seedFidelity: 0.8,
       whyLatentInPreviousNarration: unlatent
         ? "related"
         : `fixture: the account of ${input.previousSubject.label} already relied on ${predicate.text} without explaining it`,

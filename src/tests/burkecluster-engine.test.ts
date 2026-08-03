@@ -270,3 +270,46 @@ describe("BurkeCluster engine", () => {
     expect(result.endReason).toBe("DIMINISHING_RETURNS");
   });
 });
+
+describe("BurkeCluster seed fidelity", () => {
+  it("refuses a pivot that cannot say how it still answers the seed", async () => {
+    const oracle = new FixtureBurkeClusterOracle();
+    const incipit = oracle.incipit.bind(oracle);
+    vi.spyOn(oracle, "incipit").mockImplementation(async (i) => ({
+      ...(await incipit(i)),
+      // The failure the real run showed: a pivot genuinely latent in the
+      // previous account, because the account mentioned it as an example,
+      // and unable to relate it back to what was actually asked.
+      seedQuestionRelation: "",
+      seedFidelity: 0.05,
+    }));
+
+    const result = await walk({}, {}, oracle);
+    expect(result.state.acceptedClusters).toHaveLength(0);
+    expect(
+      result.state.rejectedSubjects.some((r) =>
+        /still answers the seed/.test(r.reason),
+      ),
+    ).toBe(true);
+  });
+
+  it("prefers a deficiency on what the account depends on, not what it cites", async () => {
+    // The engine should decline to hang the next search on an illustration
+    // when a constitutive deficiency exists.
+    const oracle = new FixtureBurkeClusterOracle();
+    vi.spyOn(oracle, "selectDeficiency").mockImplementation(async (i) => ({
+      // The fixture marks its SECOND predicate illustrative (its map is
+      // 1-based), so this is the deficiency hanging off the scenery.
+      deficiencyId: i.narration.deficiencies[1]?.id ?? i.narration.deficiencies[0].id,
+      scores: {} as never,
+      reasoning: "fixture: deliberately picks the illustrative one",
+      searchTerms: ["fixture"],
+    }));
+
+    const result = await walk({}, {}, oracle);
+    const swapped = result.state.rejectedSubjects.some((r) =>
+      /hangs off an illustration/.test(r.reason),
+    );
+    expect(swapped).toBe(true);
+  });
+});

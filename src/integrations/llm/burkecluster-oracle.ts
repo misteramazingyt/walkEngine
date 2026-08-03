@@ -287,6 +287,8 @@ export class LlmBurkeClusterOracle implements BurkeClusterOracle {
       newSubjectLabel: input.newSubject.label,
       subjectEmergenceExplanation: result.subjectEmergenceExplanation,
       whyLatentInPreviousNarration: result.whyLatentInPreviousNarration,
+      seedQuestionRelation: result.seedQuestionRelation,
+      seedFidelity: result.seedFidelity,
       pivotType: result.pivotType,
       archivalSupport: result.archivalSupport,
       narrativeBridge: result.narrativeBridge,

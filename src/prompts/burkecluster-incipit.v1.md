@@ -37,3 +37,24 @@ announce a subject merely because it occurred in a previous sentence.
 Set evidentiaryStatus honestly. A pivot resting on structural analogy or
 speculative resonance must earn a high confidence or be rejected — name the
 precise carrier if you claim analogy.
+
+## Still answering the seed
+
+Latency is necessary and not sufficient. An example the previous account
+mentioned in passing IS latent in it, so the latency test alone would license
+this route to follow its own scenery away from what was asked.
+
+So also state `seedQuestionRelation`: how the NEW subject still answers the
+question the SEED asked — not the question the previous subject asked. Name
+the seed's concern and say what this subject contributes to it.
+
+Then set `seedFidelity` between 0 and 1. Judge it honestly:
+
+- 0.8+ the new subject bears directly on the seed's question
+- 0.5  it bears on it through one clear mediation
+- 0.3  the relation is real but distant, and the route is drifting
+- 0.1  this subject belongs to the previous account's scenery, not the seed
+
+A pivot that cannot state the relation, or scores itself below the floor, is
+rejected. Do not inflate the number to get the pivot accepted: a route that
+wanders is worse than a route that stops.

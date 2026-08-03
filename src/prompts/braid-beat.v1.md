@@ -44,3 +44,21 @@ Continue from the previous beat's prose without recapitulating it.
 Return the paragraph, the plant sentence if you planted anything, and the
 ids of every subject you actually mentioned — including the topic. Report
 what you wrote, not what you were asked to write.
+
+## Do not restate the previous beat
+
+The previous beat's prose is given so your paragraph JOINS it, not so you can
+summarise it. Beginning by paraphrasing — still worse, by repeating a
+sentence of it verbatim — wastes the beat and makes the composition read as
+one idea circling itself.
+
+Start where the previous beat left off and go somewhere. If the previous beat
+ended on a consequence, open on what that consequence required. If it ended
+on a claim, open on what the claim cannot yet account for.
+
+## Say something about your topic
+
+Your topic has a lead summary attached. Use its specifics — dates, places,
+numbers, names, the concrete particulars. A beat that could have been written
+from the topic's title alone has failed, however well it reads: it is a
+paragraph about a phrase rather than about a thing.

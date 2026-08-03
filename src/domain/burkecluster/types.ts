@@ -114,10 +114,14 @@ export type PredicateType =
   | "unintended_consequence";
 
 /** A determination unfolded in a subject's narration. */
+/** What an account depends on, versus what it cites for colour. */
+export type PredicateRole = "constitutive" | "illustrative";
+
 export interface NarratedPredicate {
   id: string;
   text: string;
   predicateType: PredicateType;
+  role: PredicateRole;
   supportPages: string[];
   supportStrength: number;
   explanatoryCompleteness: number;
@@ -194,6 +198,14 @@ export interface IncipitSubjectum {
   /** Stated precisely, or the pivot is rejected. */
   whyLatentInPreviousNarration: string;
   pivotType: BurkeQuestion;
+  /**
+   * How the NEW subject still answers the seed's question. Latency is
+   * necessary and not sufficient: an example mentioned in passing is
+   * genuinely latent in the previous narration, and pivoting into it is
+   * how a route wanders into its own scenery.
+   */
+  seedQuestionRelation: string;
+  seedFidelity: number;
   archivalSupport: string[];
   narrativeBridge: string;
   evidentiaryStatus: EvidenceStatus;

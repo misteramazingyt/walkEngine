@@ -69,6 +69,10 @@ const predicateSchema = z.object({
     "social_role",
     "unintended_consequence",
   ]),
+  // Whether the account DEPENDS on this, or merely cites it to be vivid.
+  // Chasing an illustration is how a walk seeded on the meaning of life
+  // ends up narrating the American Civil War.
+  role: z.enum(["constitutive", "illustrative"]).default("constitutive"),
   supportPages: z.array(z.string()).default([]),
   supportStrength: z.number().min(0).max(1),
   explanatoryCompleteness: z.number().min(0).max(1),
@@ -191,6 +195,10 @@ export const incipitSchema = z.object({
   previousNarrationExcerpt: z.string().min(1),
   subjectEmergenceExplanation: z.string().min(1),
   whyLatentInPreviousNarration: z.string().min(1),
+  /** How the new subject still answers the SEED's question, not merely the
+   * current subject's. Without this a route follows its own illustrations. */
+  seedQuestionRelation: z.string().default(""),
+  seedFidelity: z.number().min(0).max(1).default(0),
   pivotType: z.enum(BURKE_QUESTIONS),
   archivalSupport: z.array(z.string()).default([]),
   narrativeBridge: z.string().min(1),

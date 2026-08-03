@@ -35,3 +35,22 @@ ritualized inversion can stabilize rather than destroy social order."
 For each deficiency give impliedSearchDomain: the institutions, practices,
 mechanisms, or periods where an answer might live. These terms will steer
 the next stochastic sampling, so make them archival rather than thematic.
+
+## Constitutive or illustrative
+
+Mark each predicate's `role`.
+
+A predicate is **constitutive** when the account depends on it: remove it and
+the claim you just made stops standing. It is **illustrative** when it is an
+example, a case, or a scene you reached for to make the account vivid — the
+account would survive its removal, poorer but intact.
+
+Be honest and be strict. A named battle, film, person, or episode offered to
+show what you mean is illustrative, however concrete and however much of the
+paragraph it occupies. The temptation is to mark everything constitutive
+because everything felt necessary while writing; resist it.
+
+This is not bookkeeping. The walk pursues what an account leaves unexplained,
+and a walk that pursues an illustration follows the scenery instead of the
+argument — a route seeded on the meaning of life ends up narrating a regiment
+because a regiment was once mentioned as an example.

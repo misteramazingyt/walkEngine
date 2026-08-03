@@ -1,4 +1,5 @@
 import type { BurkeClusterState, Subject } from "@/domain/burkecluster/types";
+import { titleExclusionReason } from "@/domain/walk/exclusions";
 import {
   BRAID_DEFAULTS,
   type Beat,
@@ -82,6 +83,11 @@ function pageSubjects(source: BraidSource): PageSubject[] {
     for (const title of titles) {
       const key = title.toLowerCase();
       if (seen.has(key)) continue;
+      // A page can be sampled legitimately and still be no kind of subject.
+      // The walk's own exclusion rules are the right judge of that, and
+      // applying them here keeps catalogues and namespace pages out of a
+      // composition even when an older run stored them.
+      if (titleExclusionReason(title, { excludeMetaPages: true })) continue;
       const fromPacket = cluster.packet?.topByRelevance?.find(
         (p) => p.title === title,
       );

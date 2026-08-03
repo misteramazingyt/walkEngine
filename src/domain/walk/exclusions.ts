@@ -21,6 +21,20 @@ const META_TITLE_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
   },
   { pattern: /^ISO \d/, reason: "standard-number page" },
   { pattern: /^ISBN$|^ISSN$|^Digital object identifier$/i, reason: "identifier page" },
+  // Reference works that enumerate a field rather than being of it. These
+  // are not prefix-anchored because the giveaway sits mid-title: "AFI
+  // Catalog of Feature Films" passed every rule above and arrived in a
+  // composition as though it were a historical subject.
+  { pattern: /\bcatalogs? of\b|\bcatalogues? of\b/i, reason: "catalogue page" },
+  { pattern: /\bbibliograph(y|ies)\b/i, reason: "bibliography page" },
+  { pattern: /\bfilmograph(y|ies)\b/i, reason: "filmography page" },
+  { pattern: /\bdiscograph(y|ies)\b/i, reason: "discography page" },
+  { pattern: /\b(encyclopedia|encyclopaedia) of\b/i, reason: "encyclopedia page" },
+  // Namespace leakage: these are not articles at all.
+  {
+    pattern: /^(Category|Portal|Template|Wikipedia|Help|Draft|Module):/i,
+    reason: "non-article namespace",
+  },
 ];
 
 /** Title-level exclusion; returns a reason or null when the title is fine. */

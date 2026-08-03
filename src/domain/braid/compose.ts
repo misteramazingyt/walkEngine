@@ -123,6 +123,14 @@ export async function composeBraid(options: {
       );
     }
 
+    // A beat that opens by repeating its predecessor has spent itself
+    // saying nothing, and the reader experiences the composition as one
+    // thought circling. Cheap to detect, so detected rather than hoped away.
+    const opening = written.prose.trim().slice(0, 120).toLowerCase();
+    if (opening.length > 40 && previousProse.toLowerCase().includes(opening)) {
+      notes.push(`beat ${beat.index}: opens by repeating the previous beat`);
+    }
+
     for (const id of written.mentioned) introduced.add(id);
     beats.push({
       index: beat.index,

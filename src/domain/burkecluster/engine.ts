@@ -84,6 +84,10 @@ export interface BurkeClusterEngineConfig {
 const CLUSTER_SHORTLIST = 5;
 const SUBJECT_ATTEMPTS = 3;
 const LOW_BEARING_THRESHOLD = 0.35;
+// Below this a pivot is following the previous account's scenery. Not
+// higher: a genuine Burkean turn often looks oblique to the seed at the
+// moment it is made, and only earns its relation on arrival.
+const SEED_FIDELITY_FLOOR = 0.35;
 
 export async function runBurkeClusterWalk(options: {
   wikipedia: WalkGateway;
@@ -354,9 +358,31 @@ export async function runBurkeClusterWalk(options: {
         alreadyDiscovered: state.acceptedClusters.map((c) => c.subject.label),
       });
       modelCalls += 1;
-      const deficiency: ExplanatoryDeficiency =
+      let deficiency: ExplanatoryDeficiency =
         narration.deficiencies.find((d) => d.id === selection.deficiencyId) ??
         narration.deficiencies[0];
+
+      // A deficiency hanging off an illustration sends the walk after the
+      // account's scenery rather than its argument: a seed on the meaning of
+      // life mentions a regiment as an example, and six cycles later the
+      // route is narrating the American Civil War. Prefer a deficiency
+      // attached to something the account actually depends on, when one
+      // exists, and record the substitution rather than doing it silently.
+      const roleOf = (id: string) =>
+        narration.predicates.find((p) => p.id === id)?.role ?? "constitutive";
+      if (roleOf(deficiency.predicateId) === "illustrative") {
+        const constitutive = narration.deficiencies.find(
+          (d) => d.id !== deficiency.id && roleOf(d.predicateId) === "constitutive",
+        );
+        if (constitutive) {
+          state.rejectedSubjects.push({
+            label: deficiency.deficiencyStatement.slice(0, 80),
+            reason:
+              "deficiency hangs off an illustration; took the constitutive one instead",
+          });
+          deficiency = constitutive;
+        }
+      }
       deficiency.status = "cluster_searching";
 
       const deficiencyTerms = [
@@ -551,6 +577,19 @@ export async function runBurkeClusterWalk(options: {
         }
         if (!bridgeSubstantive) {
           const reason = "bridge merely asserts that the subjects are related";
+          state.rejectedSubjects.push({ label: candidate.subject.label, reason });
+          continue;
+        }
+        // Latency is necessary and not sufficient. An example the previous
+        // account mentioned in passing IS latent in it, so the latency test
+        // alone licenses a walk to follow its own illustrations away from
+        // the seed. A pivot must also say how the new subject still answers
+        // the question the seed asked.
+        if (
+          incipit.seedQuestionRelation.trim().length < 25 ||
+          incipit.seedFidelity < SEED_FIDELITY_FLOOR
+        ) {
+          const reason = `cannot say how it still answers the seed (fidelity ${incipit.seedFidelity.toFixed(2)})`;
           state.rejectedSubjects.push({ label: candidate.subject.label, reason });
           continue;
         }
