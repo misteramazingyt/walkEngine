@@ -201,3 +201,35 @@ connections they wrote down.
 - `moderate` — honour what is named, and find as much again.
 - `sparse` — almost nothing is fixed. Wander far, and do not manufacture an
   ending the material has not produced.
+
+---
+
+# Inside the beat: somebody wanted something
+
+Measured across Burke's paragraphs, 7.6% of his moves state a PROBLEM and
+7.8% state an ATTEMPT — somebody needs something and has a go at getting it.
+Our own drafts ran 2.1% and 1.0%. That absence is why our beats read as
+"here is a thing, here is who made it, here is what it did", repeated.
+
+So choose subjects that will support a story, and record it:
+
+- `someoneWanted` — a named person or a definite group, and what they were
+  after. Not "society" and not "people". A guild, a bishop, a clerk, a
+  particular man with a particular problem.
+- `whatTheyTried` — what they actually did about it.
+- `whatHappenedInstead` — what came of it that they were not aiming at.
+
+If you cannot fill these three for a subject, it is the wrong subject. A page
+about a thing that simply existed will produce a paragraph about a thing that
+simply existed. Prefer the page where somebody was trying to solve a
+different problem entirely.
+
+## Every turn must be a different turn
+
+Our draft turned in 86.7% of its paragraphs against Burke's 50.8%, and every
+single turn was the same one: meaning shifting from the communal to the
+individual. Fifteen identical surprises are not surprises.
+
+So `whatHappenedInstead` must differ in KIND from its neighbours. Some beats
+should not turn at all — half of Burke's do not. A beat that simply reports
+clearly is a rest, and rests are what make the next turn land.

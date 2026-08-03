@@ -68,6 +68,27 @@ export const routeStepSchema = z.object({
   entry: z.string().default(""),
   /** Words this beat should run to, from the piece's total budget. */
   words: z.number().int().min(40).max(600).default(110),
+
+  // --- the story inside the beat --------------------------------------
+  // Measured against Burke: his paragraphs run 7.6% `problem` and 7.8%
+  // `attempt`; ours ran 2.1% and 1.0%. Nobody in our writing ever wanted
+  // anything or had a go at getting it, so nothing inside a beat was a
+  // story — a thing existed, someone made it, it had effects. These three
+  // fields are chosen at DISCOVERY, so a subject with no one trying
+  // anything is not selected in the first place.
+
+  /** Who wanted something here, and what. A person or a definite group. */
+  someoneWanted: z.string().min(1),
+  /** What they actually did about it. */
+  whatTheyTried: z.string().min(1),
+  /**
+   * What happened instead of, or as well as, what they were after. This is
+   * the beat's own turn, and it must differ from its neighbours': our draft
+   * turned 86.7% of the time against Burke's 50.8%, and every turn was the
+   * same one — meaning shifting from the communal to the individual, fifteen
+   * times over. A turn a reader can predict is not a turn.
+   */
+  whatHappenedInstead: z.string().min(1),
 });
 
 export const routePlanSchema = z.object({

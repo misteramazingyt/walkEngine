@@ -88,3 +88,35 @@ So: do not write a bridge unless the beat needs one. Do not open by setting
 this beat against the last; contrast is 3.5% of his seams and was 62.5% of
 ours. Where nothing connects, start the new thing cleanly rather than
 manufacturing a hinge. A figure of resemblance is almost never the answer.
+
+
+---
+
+# The shape of a paragraph, measured
+
+Burke's paragraphs average 4.8 moves. The mix, across 181 of them:
+
+  setup 20%   consequence 17%   particular 12%   aside 8%   reversal 8%
+  attempt 8%  problem 8%        scene 8%         stakes 6%  address 3%
+
+They open on `setup` (35%) or `scene` (15%), and close on `consequence`
+(21%), `particular` (13%) or `reversal` (10%).
+
+Three gaps between that and our own writing, all of them yours to close:
+
+**Somebody wants something.** You are given who wanted what, what they tried,
+and what happened instead. Write the paragraph as that: a person with a
+problem, having a go. Our drafts ran `attempt` at 1% against his 8% — nobody
+in them ever tried anything, which is why nothing in them is a story.
+
+**Asides.** One move in twelve of Burke's is a joke, an irony, a wry
+observation, a digression that goes nowhere. Ours had none at all. Put one
+in when it is genuinely funny or genuinely odd; a laboured joke is worse
+than none, but a paragraph with no play in it reads like a report.
+
+**Do not explain why it matters.** We ran `stakes` at 15% against his 6%.
+Trust the material. If the reader needs to be told the significance, the
+particulars were too weak.
+
+Aim for four to six moves. Six is already busy; our drafts ran 6.4 and felt
+crammed.
