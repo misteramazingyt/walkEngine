@@ -2,6 +2,9 @@ import type { BurkeOracle } from "@/domain/burke/types";
 import type { AnamnesisOracle } from "@/domain/anamnesis/types";
 import type { StartOracle } from "@/domain/walk/types";
 import type { BraidOracle } from "@/domain/braid/types";
+import type { BriefOracle } from "@/domain/brief/types";
+import { LlmBriefOracle } from "@/integrations/llm/brief-oracle";
+import { FixtureBriefOracle } from "@/integrations/llm/fixture-brief-oracle";
 import { LlmBraidOracle } from "@/integrations/llm/braid-oracle";
 import { FixtureBraidOracle } from "@/integrations/llm/fixture-braid-oracle";
 import { GeminiProvider } from "@/integrations/gemini/provider";
@@ -31,6 +34,11 @@ export function createBurkeOracle(): BurkeOracle {
 export function createAnamnesisOracle(): AnamnesisOracle {
   if (fixturesEnabled()) return new FixtureAnamnesisOracle();
   return new LlmAnamnesisOracle(new GeminiProvider());
+}
+
+export function createBriefOracle(): BriefOracle {
+  if (fixturesEnabled()) return new FixtureBriefOracle();
+  return new LlmBriefOracle(new GeminiProvider());
 }
 
 export function createBraidOracle(): BraidOracle {
