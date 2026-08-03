@@ -131,6 +131,7 @@ export class LlmRouteOracle implements RouteOracle {
     claimed: string;
     claimedEvidence: string;
     changedEnvironment: string;
+    extraArticles?: Array<{ title: string; extract: string }>;
   }) {
     return this.provider.generateStructured({
       promptId: "verify-carrier.v1",
@@ -145,6 +146,10 @@ export class LlmRouteOracle implements RouteOracle {
 ${input.prevExtract.slice(0, 9000)}`,
         `ARTICLE ON ${input.nextTitle}:
 ${input.nextExtract.slice(0, 9000)}`,
+        ...(input.extraArticles ?? []).map(
+          (x) => `INTERMEDIARY ARTICLE, fetched at your request — ${x.title}:
+${x.extract.slice(0, 8000)}`,
+        ),
       ].join("\n\n"),
       schema: carrierVerdictSchema,
       temperature: 0.2,

@@ -78,12 +78,15 @@ export interface RouteOracle {
     claimedEvidence: string;
     /** What the previous subject left changed in the shared world. */
     changedEnvironment: string;
+    /** Intermediary articles fetched on the verifier's own request. */
+    extraArticles?: Array<{ title: string; extract: string }>;
   }): Promise<{
     found: boolean;
     carrier: string;
     evidence: string;
     mechanism: string;
     motivation: string;
+    huntFor: string[];
   }>;
 
   /**

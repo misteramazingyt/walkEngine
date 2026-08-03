@@ -198,7 +198,7 @@ async function main(): Promise<void> {
     const b = verified.subjects.get(st.subjectId);
     if (!a || !b) continue;
     try {
-      const verdict = await routeOracle.verifyCarrier({
+      let verdict = await routeOracle.verifyCarrier({
         prevTitle: a.title,
         prevExtract: a.extract,
         nextTitle: b.title,
@@ -207,6 +207,39 @@ async function main(): Promise<void> {
         claimedEvidence: st.carrierEvidence,
         changedEnvironment: prev.changedEnvironment,
       });
+      // The singular story usually lives in the pages between two subjects.
+      // If the verifier names who to fetch, fetch them and ask again.
+      if (verdict.huntFor.length > 0) {
+        const extras: Array<{ title: string; extract: string }> = [];
+        for (const name of verdict.huntFor.slice(0, 3)) {
+          try {
+            const infos = await gateway.getArticleInfos([name]);
+            const info = [...infos.values()].find((x) => !x.missing);
+            if (!info) continue;
+            const extract = await gateway.getArticleExtract(info.title);
+            if (extract.trim().length > 400) {
+              extras.push({ title: info.title, extract });
+            }
+          } catch {
+            /* a failed fetch just narrows the hunt */
+          }
+        }
+        if (extras.length > 0) {
+          console.log(
+            `  ${a.title} → ${b.title}: hunting ${extras.map((x) => x.title).join(", ")}`,
+          );
+          verdict = await routeOracle.verifyCarrier({
+            prevTitle: a.title,
+            prevExtract: a.extract,
+            nextTitle: b.title,
+            nextExtract: b.extract,
+            claimed: st.carrier,
+            claimedEvidence: st.carrierEvidence,
+            changedEnvironment: prev.changedEnvironment,
+            extraArticles: extras,
+          });
+        }
+      }
       if (verdict.found && verdict.carrier.trim().length > 0) {
         const replaced = verdict.carrier !== st.carrier;
         st.carrier = verdict.carrier;

@@ -54,3 +54,31 @@ world summoned this carrier, or who crossed and how they came to. This is
 handed to the writer as the seam's opening material, so write it as fact to
 be narrated, not as commentary. "With cheap print flooding the German
 towns, a Wittenberg friar saw a market no one had priced" — that shape.
+
+---
+
+# Hunt the intermediary
+
+The singular story usually lives in the pages BETWEEN two subjects, not in
+either endpoint. The Desert Fathers article and the Confession article only
+gesture at each other; the men who actually made the passage — the student
+who wrote the desert down for Gaul, the Irish abbot who sailed with tariff
+books in his luggage — have pages of their own.
+
+So: if the endpoint articles hint at a specific person, text, order or
+council without telling their story — a name mentioned once, a "was
+influenced by", a "spread through" — put up to three of those page titles in
+`huntFor`. The system will fetch them and ask you again with the articles in
+hand. Prefer people over institutions and named texts over movements: hunt
+the traveller, not the trend.
+
+When you are called WITH intermediary articles, the hunt is over: use them.
+Choose the single best story — one person or one text making the passage,
+with a date and a place — and return it as the carrier with its evidence
+quoted from the intermediary article. Set huntFor empty. Only if the fetched
+pages also show no passage do you return found = false.
+
+Never return a carrier whose subject is an institution acting facelessly —
+"the Church seized upon such mechanisms" — when a named person is available
+one fetch away. Faceless institutions are what a story looks like before the
+hunt; your job is the hunt.

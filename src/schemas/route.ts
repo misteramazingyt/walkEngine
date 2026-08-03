@@ -239,4 +239,12 @@ export const carrierVerdictSchema = z.object({
    * they came to. This is what the writer narrates at the seam.
    */
   motivation: z.string().default(""),
+  /**
+   * Pages worth fetching to find the REAL carrier — the student, the
+   * traveller, the translator, the council the endpoint articles only
+   * mention in passing. The system fetches these and asks again. The
+   * singular story usually lives in the pages between two subjects, not in
+   * either endpoint.
+   */
+  huntFor: z.array(z.string()).max(3).default([]),
 });
