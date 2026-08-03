@@ -63,6 +63,20 @@ export interface DwellPhase {
 
 export interface RouteOracle {
   /**
+   * The walk, returned to this path. The planner's prior is the canon, so
+   * its cast arrives as surveys everyone has browsed; the discovery that
+   * produced every piece of material worth keeping came from the archive.
+   * Descend from each survey to the specific page inside it that actually
+   * carries the role.
+   */
+  specifySubject(input: {
+    title: string;
+    extract: string;
+    role: string;
+    seed: string;
+  }): Promise<{ candidates: string[]; why: string }>;
+
+  /**
    * Check a seam's carrier against both full articles, replacing a trend
    * dressed as an event with a real one, or reporting honestly that the
    * archive shows no passage — in which case the seam cuts cleanly rather

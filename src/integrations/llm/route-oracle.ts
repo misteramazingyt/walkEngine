@@ -1,5 +1,5 @@
 import type { RouteOracle, ScriptOracle } from "@/domain/route/types";
-import { beatSchema, carrierVerdictSchema, dwellExpansionSchema, routePlanSchema } from "@/schemas/route";
+import { beatSchema, carrierVerdictSchema, dwellExpansionSchema, routePlanSchema, specifyVerdictSchema } from "@/schemas/route";
 import { z } from "zod";
 import { loadPrompt } from "./prompt-files";
 import type { LanguageModelProvider } from "./provider";
@@ -126,6 +126,28 @@ export class LlmRouteOracle implements RouteOracle {
       schema: routePlanSchema,
       temperature: 0.9,
       maxTokens: 60000,
+    });
+  }
+
+  async specifySubject(input: {
+    title: string;
+    extract: string;
+    role: string;
+    seed: string;
+  }) {
+    return this.provider.generateStructured({
+      promptId: "specify-subject.v1",
+      system: loadPrompt("specify-subject.v1"),
+      user: [
+        `SUBJECT (a survey to descend from): ${input.title}`,
+        `ITS ROLE IN THE ROUTE: ${input.role}`,
+        `THE ROUTE IS BUILDING TOWARD: "${input.seed}"`,
+        `THE ARTICLE:
+${input.extract.slice(0, 12000)}`,
+      ].join("\n\n"),
+      schema: specifyVerdictSchema,
+      temperature: 0.4,
+      maxTokens: 8000,
     });
   }
 

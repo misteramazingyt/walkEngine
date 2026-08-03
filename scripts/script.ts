@@ -96,6 +96,47 @@ async function main(): Promise<void> {
   for (const r of verified.repaired) console.log(`  repaired ${r.from} → ${r.to}`);
   for (const d of verified.dropped) console.log(`  dropped ${d.pageTitle} — ${d.reason}`);
 
+  // The walk, restored. The planner's cast arrives as canon — surveys any
+  // reader has browsed — because a model's prior IS the canon. Descend from
+  // each survey to a specific page inside it: the person, the document, the
+  // tariff that actually carries the role. Famous pages remain as arcs; the
+  // beats live on what the archive holds beneath them.
+  rule("Descending to specifics");
+  for (const member of plan.cast) {
+    const subj = verified.subjects.get(member.id);
+    if (!subj || subj.extract.trim().length < 600) continue;
+    const role =
+      plan.steps.find((st) => st.subjectId === member.id)?.determination ??
+      member.gloss;
+    try {
+      const verdictS = await routeOracle.specifySubject({
+        title: subj.title,
+        extract: subj.extract,
+        role,
+        seed: parsed.seedText,
+      });
+      for (const candidate of verdictS.candidates) {
+        if (candidate.toLowerCase() === subj.title.toLowerCase()) continue;
+        const infos = await gateway.getArticleInfos([candidate]);
+        const info = [...infos.values()].find(
+          (x) => !x.missing && !x.isDisambiguation && x.summary.length > 0,
+        );
+        if (!info) continue;
+        const extract = await gateway.getArticleExtract(info.title);
+        if (extract.trim().length < 600) continue;
+        console.log(`  ${subj.title} → ${info.title}`);
+        subj.gloss = `${info.title} — the specific carrier of ${subj.title}: ${verdictS.why}`.slice(0, 300);
+        subj.title = info.title;
+        subj.summary = info.summary;
+        subj.extract = extract;
+        subj.url = info.url;
+        break;
+      }
+    } catch {
+      /* an unspecified subject stays a survey; the run continues */
+    }
+  }
+
   // Beats whose subject did not survive verification cannot be written.
   plan.steps = plan.steps.filter((st) => verified.subjects.has(st.subjectId));
   if (plan.steps.length === 0) throw new Error("No beats survived verification");

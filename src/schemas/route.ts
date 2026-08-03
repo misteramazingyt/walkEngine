@@ -248,3 +248,10 @@ export const carrierVerdictSchema = z.object({
    */
   huntFor: z.array(z.string()).max(3).default([]),
 });
+
+export const specifyVerdictSchema = z.object({
+  /** Candidate page titles, best first, as linked in the article. */
+  candidates: z.array(z.string()).max(3).default([]),
+  /** Why the first candidate carries the role. */
+  why: z.string().default(""),
+});
