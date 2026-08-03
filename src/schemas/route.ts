@@ -130,7 +130,10 @@ export const routeStepSchema = z.object({
    * complicates, or overturns. Empty only for the opening steps: a route
    * whose determinations never touch each other is a list, not an argument.
    */
-  revises: z.array(z.number().int().min(1)).default([]),
+  // No min on the indices: the model emits an occasional 0 or a forward
+  // reference, and the writer already filters to determinations actually on
+  // the ledger. Failing a whole plan over a filterable index killed a run.
+  revises: z.array(z.number().int()).default([]),
   /** How the object looks different once this determination is added. */
   changesTheObject: z.string().min(1),
   /**
