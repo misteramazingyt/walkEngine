@@ -142,3 +142,37 @@ describe("interpretation tolerates omitted optional fields", () => {
     expect(parsed.interpretations[0].whyThisSubjectOrganizesTheCluster).toBe("");
   });
 });
+
+describe("advisory subject-type lists survive a near-miss", () => {
+  it("keeps a walk alive when the model invents a type name", async () => {
+    const { narrationSchema } = await import("@/schemas/burkecluster");
+    const parsed = narrationSchema.parse({
+      narrativeClaim: "a claim",
+      account: "an account",
+      predicates: [1, 2].map((i) => ({
+        id: `p${i}`,
+        text: `predicate ${i}`,
+        predicateType: "precondition",
+        supportStrength: 0.5,
+        explanatoryCompleteness: 0.5,
+        importanceToSubject: 0.5,
+        nextSubjectPotential: 0.5,
+      })),
+      deficiencies: [1, 2, 3].map((i) => ({
+        id: `d${i}`,
+        predicateId: "p1",
+        deficiencyStatement: "something unexplained",
+        deficiencyType: "mechanism_unexplained",
+        whyItMatters: "it matters",
+        impliedSearchDomain: ["practice"],
+        // Not in the enum. Three walks died late on exactly this.
+        impliedSubjectTypes: ["practice", "epistemic_regime"],
+        narrativePressure: 0.5,
+        historicalDepthPotential: 0.5,
+        audiencePotential: 0.5,
+      })),
+      provisionalClosingSentence: "a closing",
+    });
+    expect(parsed.deficiencies[0].impliedSubjectTypes).toContain("epistemic_regime");
+  });
+});

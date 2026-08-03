@@ -24,12 +24,21 @@ import {
   seedResolutionSchema,
   wrapAroundSchema,
 } from "@/schemas/burkecluster";
+import { SUBJECT_TYPES } from "@/domain/burkecluster/types";
 import { loadPrompt } from "./prompt-files";
 import type { LanguageModelProvider } from "./provider";
 
 // The judgment faculty for BurkeCluster. Graph measurements travel with
 // every packet, explicitly marked advisory: they say where the archive is
 // concentrated, never what a subject is.
+
+// Advisory subject-type lists arrive as free strings. An unrecognised one is
+// dropped rather than raised: these only steer search, and three consecutive
+// walks died late on strictness that bought nothing.
+function keepKnownSubjectTypes(values: string[]): string[] {
+  const known = new Set<string>(SUBJECT_TYPES);
+  return values.filter((v) => known.has(v));
+}
 
 function attentionBlock(attention: AttentionProgram): string {
   return [
@@ -128,8 +137,9 @@ export class LlmBurkeClusterOracle implements BurkeClusterOracle {
         salienceTerms: result.attention.salienceTerms,
         preferredHistoricalRelations:
           result.attention.preferredHistoricalRelations,
-        preferredSubjectTypes:
-          result.attention.preferredSubjectTypes as AttentionProgram["preferredSubjectTypes"],
+        preferredSubjectTypes: keepKnownSubjectTypes(
+          result.attention.preferredSubjectTypes,
+        ) as AttentionProgram["preferredSubjectTypes"],
         desiredTensions: result.attention.desiredTensions,
         avoidPatterns: result.attention.avoidPatterns,
         audienceProfile: {
@@ -175,8 +185,9 @@ export class LlmBurkeClusterOracle implements BurkeClusterOracle {
       deficiencies: result.deficiencies.map((d) => ({
         ...d,
         subjectId: input.subject.id,
-        impliedSubjectTypes:
-          d.impliedSubjectTypes as ExplanatoryDeficiency["impliedSubjectTypes"],
+        impliedSubjectTypes: keepKnownSubjectTypes(
+          d.impliedSubjectTypes,
+        ) as ExplanatoryDeficiency["impliedSubjectTypes"],
         status: "open" as const,
       })),
       strongestDeficiencyId: result.deficiencies[0]?.id ?? null,

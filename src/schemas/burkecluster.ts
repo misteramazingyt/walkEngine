@@ -46,7 +46,11 @@ export const seedResolutionSchema = z.object({
       .min(3)
       .max(16),
     preferredHistoricalRelations: z.array(z.enum(BURKE_QUESTIONS)).default([]),
-    preferredSubjectTypes: z.array(subjectTypeSchema).default([]),
+    // Advisory. Kept as free strings so an unrecognised type is filtered at
+    // the boundary rather than failing a walk that has already spent its
+    // whole archive budget; subjectSchema.type stays strict, since that one
+    // types an actual subject.
+    preferredSubjectTypes: z.array(z.string()).default([]),
     desiredTensions: z.array(z.string()).default([]),
     avoidPatterns: z.array(z.string()).default([]),
   }),
@@ -98,7 +102,7 @@ const deficiencySchema = z.object({
   ]),
   whyItMatters: z.string().min(1),
   impliedSearchDomain: z.array(z.string()).min(1).max(10),
-  impliedSubjectTypes: z.array(subjectTypeSchema).default([]),
+  impliedSubjectTypes: z.array(z.string()).default([]), // advisory; filtered at the boundary
   narrativePressure: z.number().min(0).max(1),
   historicalDepthPotential: z.number().min(0).max(1),
   audiencePotential: z.number().min(0).max(1),
