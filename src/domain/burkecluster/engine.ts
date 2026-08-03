@@ -96,7 +96,7 @@ export async function runBurkeClusterWalk(options: {
   const { wikipedia, entityFacts, oracle, rng, config } = options;
 
   let modelCalls = 0;
-  let finalNodes: ArchiveNode[] = [];
+  const finalNodes: ArchiveNode[] = [];
   let finalEdges: ArchiveEdge[] = [];
   const packetsBySubject = new Map<string, ClusterPacket>();
 
@@ -396,7 +396,16 @@ export async function runBurkeClusterWalk(options: {
       state.budget.edges += archive.edges.length;
       state.budget.walkEpisodes += archive.episodes.length;
       state.budget.clusterCycles = cycle;
-      finalNodes = [...archive.nodes.values()];
+      // Accumulate rather than replace. Each cycle samples a different
+      // region, and overwriting kept only the last one — so the pages
+      // warranting every earlier subject were discarded, leaving anything
+      // downstream (the braid, the inspector) unable to say a word about
+      // them. Titles are unique, so re-sampling a page just refreshes it.
+      for (const node of archive.nodes.values()) {
+        const at = finalNodes.findIndex((n) => n.title === node.title);
+        if (at >= 0) finalNodes[at] = node;
+        else finalNodes.push(node);
+      }
       finalEdges = archive.edges;
 
       // 5. CLUSTER — multi-resolution, with metrics relative to the origin.

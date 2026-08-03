@@ -64,8 +64,22 @@ export async function buildBraid(
   const seedLabel =
     state.currentSubject?.label ?? state.seed.rawInput ?? "the seed";
 
+  // The sampled archive, stored with the run, is what makes pages usable as
+  // topics: a title alone could be named but not written about.
+  const nodes = JSON.parse(run.graphNodes || "[]") as Array<{
+    title: string;
+    summary?: string;
+    url?: string;
+  }>;
+  const pages = new Map(
+    nodes.map((n) => [
+      n.title,
+      { title: n.title, summary: n.summary ?? "", url: n.url },
+    ]),
+  );
+
   const { plan, composition } = await composeBraid({
-    state,
+    source: { state, pages },
     oracle: oracleFactory(),
     config,
     seedLabel,

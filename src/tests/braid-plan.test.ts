@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planBraid } from "@/domain/braid/plan";
+import { planBraid, type BraidSource } from "@/domain/braid/plan";
 import { BRAID_DEFAULTS } from "@/domain/braid/types";
 import type {
   AcceptedSubjectCluster,
@@ -7,52 +7,51 @@ import type {
   Subject,
 } from "@/domain/burkecluster/types";
 
-// The braid's governing claim: a subject may hold the topic only after it is
-// already live, so latency is a property of the plan rather than a sentence
-// the model wrote. These fix that, and the retention of runners-up that
-// makes a live set possible at all.
+// Two claims are under test. First, quantity: Connections moves the topic
+// 29-43 times per episode, so a plan built from three cluster-level subjects
+// is the wrong shape, and topics are drawn from the PAGES inside each
+// cluster instead. Second, latency: a subject may hold the topic only after
+// it is already live, which makes the plant structural rather than asserted.
 
-function subject(id: string, label = id): Subject {
+function subject(id: string, pages: string[] = []): Subject {
   return {
     id,
-    label,
+    label: id,
     type: "practice",
     synthesized: false,
-    centralPageTitle: label,
-    constitutivePages: [label],
-    audienceAnchor: `a picture of ${label}`,
+    centralPageTitle: pages[0] ?? id,
+    constitutivePages: pages,
+    audienceAnchor: `a picture of ${id}`,
   } as Subject;
 }
 
-function accepted(id: string, index: number): AcceptedSubjectCluster {
+function cluster(
+  id: string,
+  index: number,
+  pages: string[],
+  representatives: string[] = [],
+): AcceptedSubjectCluster {
   return {
-    subject: subject(id),
+    subject: subject(id, pages),
     clusterId: `cluster-${id}`,
-    packet: null as never,
-    narration: null,
+    packet: { representativeTitles: representatives } as never,
+    narration: { account: `an account of ${id}` } as never,
     stability: 0.5,
     discoveryIndex: index,
   } as AcceptedSubjectCluster;
 }
 
-function state(options: {
-  accepted: string[];
-  runnersUp?: string[];
-}): BurkeClusterState {
-  const cycles = (options.runnersUp ?? []).map((id, i) => ({
-    cycle: i + 1,
-    originTitles: [],
-    deficiencyId: null,
-    deficiencyStatement: null,
-    episodes: [],
-    nodesSampled: 0,
-    edgesBuilt: 0,
-    clustering: {} as never,
-    interpreted: [
-      { clusterId: `c-${id}`, subject: subject(id), total: 1 - i * 0.01 },
-    ],
-  }));
-  return {
+function source(options: {
+  clusters: Array<{ id: string; pages: string[]; representatives?: string[] }>;
+  shortSummaryFor?: string[];
+  seed?: string | null;
+}): BraidSource {
+  const titles = options.clusters.flatMap((c) => [
+    ...c.pages,
+    ...(c.representatives ?? []),
+  ]);
+  const short = new Set(options.shortSummaryFor ?? []);
+  const state = {
     seed: {
       rawInput: "seed",
       resolvedPages: [],
@@ -60,87 +59,157 @@ function state(options: {
       endpointRevisions: [],
     },
     attention: {} as never,
-    currentSubject: subject("seed-subject"),
-    acceptedClusters: options.accepted.map((id, i) => accepted(id, i)),
+    currentSubject:
+      options.seed === null ? null : subject(options.seed ?? "the-culmination"),
+    acceptedClusters: options.clusters.map((c, i) =>
+      cluster(c.id, i, c.pages, c.representatives),
+    ),
     transitions: [],
     rejectedClusters: [],
     rejectedSubjects: [],
-    cycles: cycles as never,
-    discoveryOrder: options.accepted,
+    cycles: [],
+    discoveryOrder: options.clusters.map((c) => c.id),
     dependencyOrder: [],
     presentationOrder: [],
     wrapAround: null,
     budget: {} as never,
   } as BurkeClusterState;
+
+  return {
+    state,
+    pages: new Map(
+      titles.map((t) => [
+        t,
+        {
+          title: t,
+          summary: short.has(t)
+            ? "tiny"
+            : `A reasonably long lead summary about ${t}.`,
+        },
+      ]),
+    ),
+  };
 }
 
+const labelsOf = (plan: ReturnType<typeof planBraid>) =>
+  plan.beats.map((b) => plan.live.get(b.topicSubjectId)!.subject.label);
+
 describe("braid plan", () => {
-  it("presents subjects in reverse discovery order, ending on the seed", () => {
-    const plan = planBraid(state({ accepted: ["a", "b", "c"] }));
-    expect(plan.topicOrder).toEqual(["c", "b", "a", "seed-subject"]);
+  it("takes its topics from the pages inside clusters, not the clusters", () => {
+    const plan = planBraid(
+      source({
+        clusters: [
+          { id: "arc-a", pages: ["Plough", "Manor"], representatives: ["Ox"] },
+          { id: "arc-b", pages: ["Radar"], representatives: ["Magnetron"] },
+        ],
+      }),
+    );
+    const labels = labelsOf(plan);
+    expect(labels).toContain("Plough");
+    expect(labels).toContain("Magnetron");
+    expect(labels).not.toContain("arc-a");
   });
 
-  it("gives each topic the measured residence of two beats", () => {
-    const plan = planBraid(state({ accepted: ["a", "b"] }));
-    expect(plan.diagnostics.medianTopicRun).toBe(BRAID_DEFAULTS.topicBeats);
-    expect(plan.beats.filter((b) => b.topicSubjectId === "b")).toHaveLength(2);
+  it("produces far more topics than the walk accepted subjects", () => {
+    const plan = planBraid(
+      source({
+        clusters: [
+          {
+            id: "arc-a",
+            pages: ["P1", "P2", "P3", "P4"],
+            representatives: ["R1", "R2", "R3", "R4", "R5"],
+          },
+          {
+            id: "arc-b",
+            pages: ["Q1", "Q2", "Q3"],
+            representatives: ["S1", "S2", "S3", "S4"],
+          },
+        ],
+      }),
+    );
+    // Two accepted clusters, sixteen pages, plus the seed.
+    expect(new Set(plan.beats.map((b) => b.topicSubjectId)).size).toBeGreaterThan(12);
   });
 
-  it("plants every later topic before it carries the topic", () => {
-    const plan = planBraid(state({ accepted: ["a", "b", "c"] }));
+  it("presents the later-discovered arc first and closes on the seed", () => {
+    const plan = planBraid(
+      source({
+        clusters: [
+          { id: "first-found", pages: ["A1"] },
+          { id: "last-found", pages: ["B1"] },
+        ],
+      }),
+    );
+    const labels = labelsOf(plan);
+    expect(labels[0]).toBe("B1");
+    expect(labels[labels.length - 1]).toBe("the-culmination");
+  });
+
+  it("records which arc each page-topic belongs to", () => {
+    const plan = planBraid(
+      source({
+        clusters: [
+          { id: "arc-a", pages: ["Plough"] },
+          { id: "arc-b", pages: ["Radar"] },
+        ],
+      }),
+    );
+    expect(plan.arcs.get("page:Plough")).toBe("arc-a");
+    expect(plan.arcs.get("page:Radar")).toBe("arc-b");
+  });
+
+  it("skips a page with no usable summary rather than making it a topic", () => {
+    const plan = planBraid(
+      source({
+        clusters: [{ id: "arc-a", pages: ["Plough", "Stub"] }],
+        shortSummaryFor: ["Stub"],
+      }),
+    );
+    const labels = labelsOf(plan);
+    expect(labels).toContain("Plough");
+    expect(labels).not.toContain("Stub");
+  });
+
+  it("plants every topic but the first before it takes the floor", () => {
+    const plan = planBraid(
+      source({
+        clusters: [
+          { id: "arc-a", pages: ["P1", "P2", "P3"], representatives: ["R1", "R2"] },
+        ],
+      }),
+    );
     for (const entry of plan.live.values()) {
       if (entry.topicBeats.length === 0) continue;
-      const firstTopic = entry.topicBeats[0];
-      // The opening subject has no earlier beat to be planted in; every
-      // other topical subject must have entered before it took the floor.
-      if (firstTopic === 1) continue;
-      expect(entry.enteredAtBeat).toBeLessThan(firstTopic);
+      if (entry.topicBeats[0] === 1) continue;
+      expect(entry.enteredAtBeat).toBeLessThan(entry.topicBeats[0]);
     }
     expect(plan.diagnostics.topicsWithoutPlant).toBe(1);
   });
 
-  it("keeps discarded runners-up live as supporting subjects", () => {
+  it("keeps many subjects live at once, not two", () => {
     const plan = planBraid(
-      state({ accepted: ["a", "b"], runnersUp: ["r1", "r2", "r3"] }),
-    );
-    expect(plan.diagnostics.supportingOnlySubjects).toBeGreaterThan(0);
-    const supporting = new Set(plan.beats.flatMap((b) => b.supportingSubjectIds));
-    expect([...supporting].some((id) => id.startsWith("r"))).toBe(true);
-  });
-
-  it("never makes a runner-up topical, since nothing narrated it", () => {
-    const plan = planBraid(
-      state({ accepted: ["a"], runnersUp: ["r1", "r2", "r3", "r4"] }),
-    );
-    const topics = new Set(plan.beats.map((b) => b.topicSubjectId));
-    for (const id of topics) {
-      expect(plan.live.get(id)?.narrated).toBe(true);
-    }
-  });
-
-  it("carries several subjects at once rather than passing a baton", () => {
-    const plan = planBraid(
-      state({
-        accepted: ["a", "b", "c"],
-        runnersUp: ["r1", "r2", "r3", "r4", "r5", "r6"],
+      source({
+        clusters: [
+          {
+            id: "arc-a",
+            pages: ["P1", "P2", "P3", "P4", "P5"],
+            representatives: ["R1", "R2", "R3", "R4", "R5", "R6", "R7"],
+          },
+        ],
       }),
     );
-    expect(plan.diagnostics.medianLiveAtOnce).toBeGreaterThan(3);
+    expect(plan.diagnostics.medianLiveAtOnce).toBeGreaterThanOrEqual(8);
   });
 
-  it("closes a subject once its tail has run out", () => {
+  it("holds each topic for the measured single beat by default", () => {
+    expect(BRAID_DEFAULTS.topicBeats).toBe(1);
     const plan = planBraid(
-      state({ accepted: ["a", "b", "c", "d", "e"] }),
-      { ...BRAID_DEFAULTS, tailBeats: 1 },
+      source({ clusters: [{ id: "arc-a", pages: ["P1", "P2"] }] }),
     );
-    const last = plan.beats[plan.beats.length - 1];
-    // With a one-beat tail the earliest subjects must have dropped out.
-    expect(last.recedingSubjectIds.length).toBeLessThan(4);
+    expect(plan.diagnostics.medianTopicRun).toBe(1);
   });
 
-  it("produces no beats when nothing was accepted", () => {
-    const empty = state({ accepted: [] });
-    empty.currentSubject = null;
-    expect(planBraid(empty).beats).toHaveLength(0);
+  it("produces no beats when nothing was accepted and there is no seed", () => {
+    expect(planBraid(source({ clusters: [], seed: null })).beats).toHaveLength(0);
   });
 });

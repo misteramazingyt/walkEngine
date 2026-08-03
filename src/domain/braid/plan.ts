@@ -1,8 +1,4 @@
-import type {
-  BurkeClusterState,
-  InterpretedCluster,
-  Subject,
-} from "@/domain/burkecluster/types";
+import type { BurkeClusterState, Subject } from "@/domain/burkecluster/types";
 import {
   BRAID_DEFAULTS,
   type Beat,
@@ -13,13 +9,23 @@ import {
 
 // Turning a discovery chain into a braid.
 //
-// BurkeCluster interprets several clusters as candidate subjects each cycle,
-// accepts the first that passes its gates, and discards the rest — they are
-// recorded for audit and never narrated. Those discards are exactly what a
-// braid needs: subjects discovered BEFORE the beat where they would matter,
-// available to be mentioned in passing while something else is explained.
+// The unit here is a PAGE, not a cluster. Measured across Connections series
+// 1, an episode moves the topic 29 to 43 times over 32 to 34 distinct
+// subjects. BurkeCluster accepts three or four cluster-level subjects, an
+// order of magnitude short, and the subjects it does accept are synthesized
+// abstractions — "Constructing Meaning Through Collective Struggle in Film"
+// — where Burke's are things: a plough, a regiment, a river, a man.
 //
-// So no new sampling happens here. The pool is already paid for.
+// The pages inside each accepted cluster are already concrete and already
+// stored with their summaries: the 54th Massachusetts, the Union army,
+// Abraham Lincoln, Glory. Promoting them to topics gives both the quantity
+// and the concreteness at once, from material the walk already paid for.
+// The cluster's own label survives as the ARC a run of pages belongs to.
+//
+// An earlier version of this file built the supporting cast from clusters
+// the interpreter had rejected. That was wrong: in a real run 26 of 28
+// interpretations returned no subject, correctly refusing navigation
+// templates and incoherent mixtures. Rejects are junk, not a cast.
 
 function medianOf(values: number[]): number {
   if (values.length === 0) return 0;
@@ -30,30 +36,63 @@ function medianOf(values: number[]): number {
     : sorted[mid];
 }
 
-/**
- * Runners-up, best first, excluding anything that became an accepted
- * subject. A cluster interpreted into no coherent subject is not a subject.
- */
-function runnersUp(state: BurkeClusterState): Subject[] {
-  const acceptedIds = new Set(state.acceptedClusters.map((c) => c.subject.id));
-  const acceptedLabels = new Set(
-    state.acceptedClusters.map((c) => c.subject.label.toLowerCase()),
-  );
-  const seen = new Set<string>();
-  const pool: Array<{ subject: Subject; score: number }> = [];
+/** A page promoted to a subject, tagged with the arc it belongs to. */
+export interface PageSubject {
+  subject: Subject;
+  arc: string;
+  arcIndex: number;
+}
 
-  for (const cycle of state.cycles) {
-    for (const entry of cycle.interpreted as InterpretedCluster[]) {
-      const subject = entry.subject;
-      if (!subject) continue;
-      if (acceptedIds.has(subject.id)) continue;
-      if (acceptedLabels.has(subject.label.toLowerCase())) continue;
-      if (seen.has(subject.id)) continue;
-      seen.add(subject.id);
-      pool.push({ subject, score: entry.total ?? 0 });
+export interface BraidSource {
+  state: BurkeClusterState;
+  /** Sampled articles with their summaries, keyed by title. */
+  pages: Map<string, { title: string; summary: string; url?: string }>;
+}
+
+/**
+ * The pages of each accepted cluster, in presentation order, as subjects.
+ *
+ * Constitutive pages come first — they are what warranted the cluster's
+ * subject — then the packet's representatives, which are the same region
+ * seen more widely. A page without a stored summary is skipped: it could be
+ * named but not used, and a topic nothing can be said about is not a topic.
+ */
+function pageSubjects(source: BraidSource): PageSubject[] {
+  const ordered = [...source.state.acceptedClusters]
+    .sort((a, b) => a.discoveryIndex - b.discoveryIndex)
+    .reverse();
+
+  const seen = new Set<string>();
+  const out: PageSubject[] = [];
+
+  ordered.forEach((cluster, arcIndex) => {
+    const titles = [
+      ...(cluster.subject.constitutivePages ?? []),
+      ...(cluster.packet?.representativeTitles ?? []),
+    ];
+    for (const title of titles) {
+      const key = title.toLowerCase();
+      if (seen.has(key)) continue;
+      const page = source.pages.get(title);
+      if (!page || page.summary.trim().length < 40) continue;
+      seen.add(key);
+      out.push({
+        arc: cluster.subject.label,
+        arcIndex,
+        subject: {
+          id: `page:${title}`,
+          label: title,
+          type: "artifact",
+          synthesized: false,
+          centralPageTitle: title,
+          constitutivePages: [title],
+          audienceAnchor: page.summary.slice(0, 400),
+        } as Subject,
+      });
     }
-  }
-  return pool.sort((a, b) => b.score - a.score).map((p) => p.subject);
+  });
+
+  return out;
 }
 
 /**
@@ -66,21 +105,22 @@ function runnersUp(state: BurkeClusterState): Subject[] {
  * which is what makes the plant real rather than asserted.
  */
 export function planBraid(
-  state: BurkeClusterState,
+  source: BraidSource,
   config: BraidPlanConfig = BRAID_DEFAULTS,
 ): BraidPlan {
-  const narratedOrder = [...state.acceptedClusters]
-    .sort((a, b) => a.discoveryIndex - b.discoveryIndex)
-    .reverse()
-    .map((c) => c.subject);
+  const { state } = source;
+  const pages = pageSubjects(source);
 
-  // The seed is the destination, so it carries the final topic run.
+  // Pages carry the topic. The seed closes, since the route culminates in it.
   const seedSubject = state.currentSubject;
-  const topicSubjects: Subject[] = [...narratedOrder];
-  const seedAccepted = topicSubjects.some((s) => s.id === seedSubject?.id);
-  if (seedSubject && !seedAccepted) topicSubjects.push(seedSubject);
+  const topicSubjects: Subject[] = pages.map((p) => p.subject);
+  if (seedSubject && !topicSubjects.some((s) => s.id === seedSubject.id)) {
+    topicSubjects.push(seedSubject);
+  }
 
-  const pool = runnersUp(state);
+  const arcOf = new Map(pages.map((p) => [p.subject.id, p.arc]));
+  // Pages still to come are the supporting cast for the beats before them:
+  // the region the walk is moving through, available to be named in passing.
   const live = new Map<string, LiveSubject>();
   const beats: Beat[] = [];
 
@@ -130,12 +170,21 @@ export function planBraid(
         planted.push(nextSubject.id);
       }
 
-      // Fill the live set toward the measured target with runners-up. They
-      // can be mentioned but never made topical: nothing narrated them.
+      // Fill the live set toward the measured target by drawing forward from
+      // the pages still to come. A page named here and made topical later is
+      // planted by construction, which is what keeps the set populated
+      // without inventing anything the walk did not sample.
       const openSlots = config.liveTarget - countLive(live, beatIndex, config);
-      for (let i = 0; i < openSlots && poolCursor < pool.length; i++) {
-        const filler = pool[poolCursor++];
-        ensureLive(filler, beatIndex, false);
+      for (let i = 0; i < openSlots; i++) {
+        while (
+          poolCursor < topicSubjects.length &&
+          live.has(topicSubjects[poolCursor].id)
+        ) {
+          poolCursor += 1;
+        }
+        if (poolCursor >= topicSubjects.length) break;
+        const filler = topicSubjects[poolCursor++];
+        ensureLive(filler, beatIndex, true);
         planted.push(filler.id);
       }
 
@@ -169,7 +218,13 @@ export function planBraid(
     }
   }
 
-  return { beats, live, topicOrder: topicSubjects.map((s) => s.id), diagnostics: diagnose(beats, live) };
+  return {
+    beats,
+    live,
+    topicOrder: topicSubjects.map((s) => s.id),
+    arcs: arcOf,
+    diagnostics: diagnose(beats, live),
+  };
 }
 
 function countLive(

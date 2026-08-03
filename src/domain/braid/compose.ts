@@ -1,5 +1,5 @@
-import type { BurkeClusterState } from "@/domain/burkecluster/types";
-import { planBraid } from "./plan";
+import type { BurkeClusterState, Subject } from "@/domain/burkecluster/types";
+import { planBraid, type BraidSource } from "./plan";
 import {
   BRAID_DEFAULTS,
   type BraidComposition,
@@ -18,28 +18,33 @@ import {
 
 const GLOSS_LIMIT = 220;
 
-function gloss(
-  state: BurkeClusterState,
-  subjectId: string,
-  fallback: string,
-): string {
-  const accepted = state.acceptedClusters.find((c) => c.subject.id === subjectId);
+/**
+ * What can be said about a subject. A cluster-level subject has a narrated
+ * account; a page carries its own lead summary in audienceAnchor. Falling
+ * back to the bare label would hand the model a name and no material, which
+ * is how a beat ends up restating its title at length.
+ */
+function gloss(state: BurkeClusterState, subject: Subject): string {
+  const accepted = state.acceptedClusters.find((c) => c.subject.id === subject.id);
   const account = accepted?.narration?.account;
   if (account) return account.slice(0, GLOSS_LIMIT);
-  const subject = accepted?.subject;
-  const anchor = subject?.audienceAnchor;
-  return (anchor && anchor.length > 0 ? anchor : fallback).slice(0, GLOSS_LIMIT);
+  const anchor = subject.audienceAnchor;
+  return (anchor && anchor.trim().length > 0 ? anchor : subject.label).slice(
+    0,
+    GLOSS_LIMIT,
+  );
 }
 
 export async function composeBraid(options: {
-  state: BurkeClusterState;
+  source: BraidSource;
   oracle: BraidOracle;
   config?: BraidPlanConfig;
   seedLabel: string;
   onProgress?: (beat: number, total: number) => Promise<void> | void;
 }): Promise<{ plan: BraidPlan; composition: BraidComposition }> {
   const config = options.config ?? BRAID_DEFAULTS;
-  const plan = planBraid(options.state, config);
+  const plan = planBraid(options.source, config);
+  const state = options.source.state;
   const notes: string[] = [];
   const beats: ComposedBeat[] = [];
 
@@ -71,7 +76,7 @@ export async function composeBraid(options: {
         return {
           id,
           label: entry.subject.label,
-          gloss: gloss(options.state, id, entry.subject.label),
+          gloss: gloss(state, entry.subject),
           firstMention: !introduced.has(id),
         };
       })
@@ -84,7 +89,7 @@ export async function composeBraid(options: {
         return {
           id,
           label: entry.subject.label,
-          gloss: gloss(options.state, id, entry.subject.label),
+          gloss: gloss(state, entry.subject),
         };
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);
@@ -92,7 +97,7 @@ export async function composeBraid(options: {
     const written = await options.oracle.composeBeat({
       beat,
       topic,
-      topicAccount: gloss(options.state, beat.topicSubjectId, topic.subject.label),
+      topicAccount: gloss(state, topic.subject),
       supporting,
       planted,
       previousProse,

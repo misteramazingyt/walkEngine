@@ -50,6 +50,8 @@ export interface BraidPlan {
   live: Map<string, LiveSubject>;
   /** Presentation order of topical subjects, ordinary scene first. */
   topicOrder: string[];
+  /** Which cluster-level arc each page-topic belongs to. */
+  arcs: Map<string, string>;
   /** Diagnostics, so a thin or lopsided braid is visible rather than implied. */
   diagnostics: {
     beatCount: number;
@@ -75,8 +77,13 @@ export interface BraidPlanConfig {
   tailBeats: number;
 }
 
+// Connections series 1 moves the topic 29-43 times per episode across
+// 32-34 distinct subjects, which is roughly one topic per paragraph with
+// some held for two. A topic residence of two beats over three subjects,
+// as the first version had, is not a slower version of that shape; it is a
+// different one.
 export const BRAID_DEFAULTS: BraidPlanConfig = {
-  topicBeats: 2,
+  topicBeats: 1,
   liveTarget: 12,
   plantLead: 1,
   tailBeats: 4,

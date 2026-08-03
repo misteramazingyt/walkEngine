@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { composeBraid } from "@/domain/braid/compose";
+import type { BraidSource } from "@/domain/braid/plan";
 import { FixtureBraidOracle } from "@/integrations/llm/fixture-braid-oracle";
 import type { BraidOracle } from "@/domain/braid/types";
 import type {
@@ -8,20 +9,21 @@ import type {
   Subject,
 } from "@/domain/burkecluster/types";
 
-function subject(id: string): Subject {
+function subject(id: string, pages: string[] = []): Subject {
   return {
     id,
     label: id,
     type: "practice",
     synthesized: false,
-    centralPageTitle: id,
-    constitutivePages: [id],
+    centralPageTitle: pages[0] ?? id,
+    constitutivePages: pages,
     audienceAnchor: `a picture of ${id}`,
   } as Subject;
 }
 
-function state(accepted: string[], runnersUp: string[] = []): BurkeClusterState {
-  return {
+function source(clusters: Array<{ id: string; pages: string[] }>): BraidSource {
+  const titles = clusters.flatMap((c) => c.pages);
+  const state = {
     seed: {
       rawInput: "seed",
       resolvedPages: [],
@@ -29,36 +31,56 @@ function state(accepted: string[], runnersUp: string[] = []): BurkeClusterState 
       endpointRevisions: [],
     },
     attention: {} as never,
-    currentSubject: subject("culmination"),
-    acceptedClusters: accepted.map((id, i) => ({
-      subject: subject(id),
-      clusterId: `cluster-${id}`,
-      packet: null as never,
-      narration: { account: `an account of ${id}` } as never,
+    currentSubject: subject("the-culmination"),
+    acceptedClusters: clusters.map((c, i) => ({
+      subject: subject(c.id, c.pages),
+      clusterId: `cluster-${c.id}`,
+      packet: { representativeTitles: [] } as never,
+      narration: { account: `an account of ${c.id}` } as never,
       stability: 0.5,
       discoveryIndex: i,
     })) as AcceptedSubjectCluster[],
     transitions: [],
     rejectedClusters: [],
     rejectedSubjects: [],
-    cycles: runnersUp.map((id, i) => ({
-      cycle: i + 1,
-      interpreted: [{ clusterId: `c-${id}`, subject: subject(id), total: 1 - i * 0.01 }],
-    })) as never,
-    discoveryOrder: accepted,
+    cycles: [],
+    discoveryOrder: clusters.map((c) => c.id),
     dependencyOrder: [],
     presentationOrder: [],
     wrapAround: null,
     budget: {} as never,
   } as BurkeClusterState;
+  return {
+    state,
+    pages: new Map(
+      titles.map((t) => [
+        t,
+        { title: t, summary: `A reasonably long lead summary about ${t}.` },
+      ]),
+    ),
+  };
 }
+
+const echoOracle = (): BraidOracle => ({
+  async composeBeat(input) {
+    return {
+      prose: `beat ${input.beat.index}`,
+      plantSentence: "",
+      mentioned: [
+        input.topic.subject.id,
+        ...input.supporting.map((s) => s.id),
+        ...input.planted.map((p) => p.id),
+      ],
+    };
+  },
+});
 
 describe("braid composition", () => {
   it("writes one beat per planned beat, in order", async () => {
     const { plan, composition } = await composeBraid({
-      state: state(["a", "b"], ["r1", "r2"]),
+      source: source([{ id: "arc", pages: ["P1", "P2", "P3"] }]),
       oracle: new FixtureBraidOracle(),
-      seedLabel: "culmination",
+      seedLabel: "the-culmination",
     });
     expect(composition.beats).toHaveLength(plan.beats.length);
     expect(composition.beats.map((b) => b.index)).toEqual(
@@ -66,11 +88,28 @@ describe("braid composition", () => {
     );
   });
 
-  it("introduces a subject indefinitely only on its first appearance", async () => {
-    const seen: boolean[][] = [];
+  it("gives each page-topic its own summary to write from", async () => {
+    const accounts: string[] = [];
     const oracle: BraidOracle = {
       async composeBeat(input) {
-        seen.push(input.supporting.map((s) => s.firstMention));
+        accounts.push(input.topicAccount);
+        return { prose: "x", plantSentence: "", mentioned: [input.topic.subject.id] };
+      },
+    };
+    await composeBraid({
+      source: source([{ id: "arc", pages: ["Plough"] }]),
+      oracle,
+      seedLabel: "the-culmination",
+    });
+    // The page's own lead, not the cluster's account and not a bare label.
+    expect(accounts[0]).toContain("lead summary about Plough");
+  });
+
+  it("marks a subject as a first mention only once", async () => {
+    const firsts: boolean[][] = [];
+    const oracle: BraidOracle = {
+      async composeBeat(input) {
+        firsts.push(input.supporting.map((s) => s.firstMention));
         return {
           prose: "x",
           plantSentence: "",
@@ -83,19 +122,16 @@ describe("braid composition", () => {
       },
     };
     await composeBraid({
-      state: state(["a", "b", "c"], ["r1", "r2"]),
+      source: source([{ id: "arc", pages: ["P1", "P2", "P3", "P4"] }]),
       oracle,
-      seedLabel: "culmination",
+      seedLabel: "the-culmination",
     });
-    // Once a subject has been mentioned it is never offered as first again.
-    const later = seen.slice(2).flat();
-    expect(later.filter(Boolean).length).toBeLessThan(seen.flat().length);
+    expect(firsts.slice(-1).flat().filter(Boolean)).toHaveLength(0);
   });
 
   it("records a plant the writing failed to make", async () => {
     const oracle: BraidOracle = {
       async composeBeat(input) {
-        // Mentions the topic and nothing else — every plant is dropped.
         return {
           prose: "only the topic",
           plantSentence: "",
@@ -104,9 +140,9 @@ describe("braid composition", () => {
       },
     };
     const { composition } = await composeBraid({
-      state: state(["a", "b"], ["r1"]),
+      source: source([{ id: "arc", pages: ["P1", "P2"] }]),
       oracle,
-      seedLabel: "culmination",
+      seedLabel: "the-culmination",
     });
     expect(composition.notes.some((n) => /planned to plant/.test(n))).toBe(true);
   });
@@ -118,13 +154,13 @@ describe("braid composition", () => {
       },
     };
     const { composition } = await composeBraid({
-      state: state(["a"]),
+      source: source([{ id: "arc", pages: ["P1"] }]),
       oracle,
-      seedLabel: "culmination",
+      seedLabel: "the-culmination",
     });
-    expect(composition.notes.some((n) => /never mentions its own topic/.test(n))).toBe(
-      true,
-    );
+    expect(
+      composition.notes.some((n) => /never mentions its own topic/.test(n)),
+    ).toBe(true);
   });
 
   it("carries the previous beat's prose forward so paragraphs join", async () => {
@@ -140,33 +176,20 @@ describe("braid composition", () => {
       },
     };
     await composeBraid({
-      state: state(["a", "b"]),
+      source: source([{ id: "arc", pages: ["P1", "P2"] }]),
       oracle,
-      seedLabel: "culmination",
+      seedLabel: "the-culmination",
     });
     expect(previous[0]).toBe("");
     expect(previous[1]).toBe("beat 1");
-    expect(previous[2]).toBe("beat 2");
-  });
-
-  it("says plainly when there is nothing to braid", async () => {
-    const empty = state([]);
-    empty.currentSubject = null;
-    const { composition } = await composeBraid({
-      state: empty,
-      oracle: new FixtureBraidOracle(),
-      seedLabel: "culmination",
-    });
-    expect(composition.beats).toHaveLength(0);
-    expect(composition.notes[0]).toMatch(/nothing to braid/);
   });
 
   it("reports progress for every beat", async () => {
     const onProgress = vi.fn();
     const { plan } = await composeBraid({
-      state: state(["a", "b"]),
-      oracle: new FixtureBraidOracle(),
-      seedLabel: "culmination",
+      source: source([{ id: "arc", pages: ["P1", "P2"] }]),
+      oracle: echoOracle(),
+      seedLabel: "the-culmination",
       onProgress,
     });
     expect(onProgress).toHaveBeenCalledTimes(plan.beats.length);
