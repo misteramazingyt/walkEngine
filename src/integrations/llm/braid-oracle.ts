@@ -1,5 +1,6 @@
 import type { BraidOracle } from "@/domain/braid/types";
 import { beatCompositionSchema } from "@/schemas/braid";
+import { topicSelectionSchema } from "@/schemas/braid-topics";
 import { loadPrompt } from "./prompt-files";
 import type { LanguageModelProvider } from "./provider";
 
@@ -8,6 +9,28 @@ import type { LanguageModelProvider } from "./provider";
 
 export class LlmBraidOracle implements BraidOracle {
   constructor(private readonly provider: LanguageModelProvider) {}
+
+  async selectTopics(input: Parameters<BraidOracle["selectTopics"]>[0]) {
+    const result = await this.provider.generateStructured({
+      promptId: "braid-select-topics.v1",
+      system: loadPrompt("braid-select-topics.v1"),
+      user: [
+        `SEED: "${input.rawSeed}"`,
+        input.attentionText.trim().length > 0
+          ? `ATTENTION:\n${input.attentionText}`
+          : "",
+        `SAMPLED PAGES — judge each:\n${input.candidates
+          .map((c) => `  ${c.id} | ${c.label}\n     ${c.gloss}`)
+          .join("\n")}`,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+      schema: topicSelectionSchema,
+      temperature: 0.2,
+      maxTokens: 24000,
+    });
+    return result;
+  }
 
   async composeBeat(input: Parameters<BraidOracle["composeBeat"]>[0]) {
     const supporting = input.supporting

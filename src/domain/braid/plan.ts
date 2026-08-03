@@ -48,6 +48,13 @@ export interface BraidSource {
   state: BurkeClusterState;
   /** Sampled articles with their summaries, keyed by title. */
   pages: Map<string, { title: string; summary: string; url?: string }>;
+  /**
+   * Page-subject ids allowed to carry a beat, once judged against the seed.
+   * Absent means no judgment has been applied and every sampled page is
+   * eligible — which is adjacency deciding the narrative, and produced
+   * sixty-eight beats of encyclopedia index.
+   */
+  allow?: Set<string>;
 }
 
 /**
@@ -97,6 +104,7 @@ function pageSubjects(source: BraidSource): PageSubject[] {
           ? { title, summary: fromPacket.summary }
           : undefined);
       if (!page || page.summary.trim().length < 40) continue;
+      if (source.allow && !source.allow.has(`page:${title}`)) continue;
       seen.add(key);
       out.push({
         arc: cluster.subject.label,

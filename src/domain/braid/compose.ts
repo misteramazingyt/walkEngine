@@ -43,10 +43,44 @@ export async function composeBraid(options: {
   onProgress?: (beat: number, total: number) => Promise<void> | void;
 }): Promise<{ plan: BraidPlan; composition: BraidComposition }> {
   const config = options.config ?? BRAID_DEFAULTS;
-  const plan = planBraid(options.source, config);
   const state = options.source.state;
   const notes: string[] = [];
   const beats: ComposedBeat[] = [];
+
+  // Judge the sampled pages BEFORE planning. Taking them by cluster
+  // membership is graph adjacency deciding a narrative, which this
+  // application exists to refuse; it is how citation identifiers and a
+  // country became narrative subjects in sixty-eight beats of index.
+  const candidatePlan = planBraid(options.source, config);
+  const candidates = [...candidatePlan.live.values()]
+    .filter((entry) => entry.subject.id.startsWith("page:"))
+    .map((entry) => ({
+      id: entry.subject.id,
+      label: entry.subject.label,
+      gloss: gloss(state, entry.subject),
+    }));
+
+  const bearings = new Map<string, string>();
+  let source = options.source;
+  if (candidates.length > 0) {
+    const verdict = await options.oracle.selectTopics({
+      rawSeed: state.seed.rawInput,
+      attentionText: state.attention.rawText ?? "",
+      candidates,
+    });
+    for (const kept of verdict.kept) bearings.set(kept.id, kept.bearing);
+    if (verdict.kept.length > 0) {
+      source = { ...options.source, allow: new Set(verdict.kept.map((k) => k.id)) };
+    }
+    notes.push(
+      `topic selection kept ${verdict.kept.length} of ${candidates.length} sampled pages`,
+    );
+    for (const drop of verdict.dropped.slice(0, 12)) {
+      notes.push(`  dropped ${drop.id.replace(/^page:/, "")} — ${drop.reason}`);
+    }
+  }
+
+  const plan = planBraid(source, config);
 
   if (plan.beats.length === 0) {
     return {
@@ -98,6 +132,7 @@ export async function composeBraid(options: {
       beat,
       topic,
       topicAccount: gloss(state, topic.subject),
+      topicBearing: bearings.get(topic.subject.id) ?? "",
       supporting,
       planted,
       previousProse,

@@ -277,11 +277,18 @@ export class LlmBurkeClusterOracle implements BurkeClusterOracle {
     deficiency: ExplanatoryDeficiency;
     newSubject: Subject;
     packet: ClusterPacket;
+    seedSubject: Subject;
+    rawSeed: string;
   }): Promise<IncipitSubjectum> {
     const result = await this.provider.generateStructured({
       promptId: "burkecluster-incipit.v1",
       system: loadPrompt("burkecluster-incipit.v1"),
       user: [
+        // First, and quoted: the fidelity gate was previously answered
+        // against whatever seed the model could infer, which was always the
+        // previous subject.
+        `THE SEED THIS ROUTE MUST STILL ANSWER: "${input.rawSeed}"`,
+        `SEED ${subjectBlock(input.seedSubject)}`,
         `PREVIOUS ${subjectBlock(input.previousSubject)}`,
         narrationBlock(input.narration),
         `DEFICIENCY:\n  [${input.deficiency.id}] ${input.deficiency.deficiencyStatement}`,

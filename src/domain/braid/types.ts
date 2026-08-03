@@ -107,11 +107,30 @@ export interface BraidComposition {
   notes: string[];
 }
 
+export interface TopicVerdict {
+  kept: Array<{ id: string; bearing: string }>;
+  dropped: Array<{ id: string; reason: string }>;
+}
+
 export interface BraidOracle {
+  /**
+   * Which sampled pages may carry a beat, and why. Without this the braid
+   * takes its topics by cluster membership, which is graph adjacency — the
+   * one thing this application exists to refuse to treat as warrant. It is
+   * how Bibcode, ArXiv and Australia became narrative subjects.
+   */
+  selectTopics(input: {
+    rawSeed: string;
+    attentionText: string;
+    candidates: Array<{ id: string; label: string; gloss: string }>;
+  }): Promise<TopicVerdict>;
+
   composeBeat(input: {
     beat: Beat;
     topic: LiveSubject;
     topicAccount: string;
+    /** What this beat must establish about the seed, from selection. */
+    topicBearing: string;
     supporting: Array<{ id: string; label: string; gloss: string; firstMention: boolean }>;
     planted: Array<{ id: string; label: string; gloss: string }>;
     previousProse: string;

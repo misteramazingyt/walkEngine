@@ -47,6 +47,12 @@ describe("exclusion of reference works", () => {
   });
 });
 
+// Test oracles judge nothing; selection is exercised in its own tests.
+const keepAll: BraidOracle["selectTopics"] = async (input) => ({
+  kept: input.candidates.map((c) => ({ id: c.id, bearing: "kept for the test" })),
+  dropped: [],
+});
+
 function source(pages: string[]): BraidSource {
   const subject = (id: string, constitutive: string[] = []): Subject =>
     ({
@@ -119,6 +125,7 @@ describe("braid composition quality checks", () => {
     const repeated =
       "The regiment mustered in the winter of 1863 and its officers were drawn from abolitionist families across New England.";
     const oracle: BraidOracle = {
+      selectTopics: keepAll,
       async composeBeat(input) {
         return {
           prose:
@@ -146,6 +153,7 @@ describe("braid composition quality checks", () => {
 
   it("says nothing when consecutive beats genuinely differ", async () => {
     const oracle: BraidOracle = {
+      selectTopics: keepAll,
       async composeBeat(input) {
         return {
           prose: `A wholly distinct paragraph number ${input.beat.index}, sharing no opening with any other, and going somewhere new.`,
@@ -164,5 +172,79 @@ describe("braid composition quality checks", () => {
       seedLabel: "the-culmination",
     });
     expect(composition.notes.filter((n) => /repeating/.test(n))).toHaveLength(0);
+  });
+});
+
+describe("topics are judged against the seed, not taken by adjacency", () => {
+  it("drops pages the judge refuses, however well connected", async () => {
+    // The real failure: Bibcode, ArXiv and Australia became narrative
+    // subjects because the archive is connected, not because they bear on
+    // anything. Adjacency is not aboutness.
+    const judged: string[] = [];
+    const oracle: BraidOracle = {
+      async selectTopics(input) {
+        judged.push(...input.candidates.map((c) => c.label));
+        const bears = (label: string) =>
+          !["Bibcode", "ArXiv", "Australia"].includes(label);
+        return {
+          kept: input.candidates
+            .filter((c) => bears(c.label))
+            .map((c) => ({ id: c.id, bearing: `${c.label} bears on the seed` })),
+          dropped: input.candidates
+            .filter((c) => !bears(c.label))
+            .map((c) => ({ id: c.id, reason: "citation apparatus, not a subject" })),
+        };
+      },
+      async composeBeat(input) {
+        return {
+          prose: "a paragraph",
+          plantSentence: "",
+          mentioned: [
+            input.topic.subject.id,
+            ...input.supporting.map((s) => s.id),
+            ...input.planted.map((p) => p.id),
+          ],
+        };
+      },
+    };
+
+    const { composition } = await composeBraid({
+      source: source(["Abraham Lincoln", "Bibcode", "ArXiv", "Australia", "Union army"]),
+      oracle,
+      seedLabel: "the-culmination",
+    });
+
+    const topics = composition.beats.map((b) => b.topicLabel);
+    expect(judged).toContain("Bibcode");
+    expect(topics).toContain("Abraham Lincoln");
+    expect(topics).not.toContain("Bibcode");
+    expect(topics).not.toContain("ArXiv");
+    expect(topics).not.toContain("Australia");
+    expect(composition.notes.some((n) => /kept 2 of 5/.test(n))).toBe(true);
+  });
+
+  it("tells each beat what it must establish about the seed", async () => {
+    const bearings: string[] = [];
+    const oracle: BraidOracle = {
+      async selectTopics(input) {
+        return {
+          kept: input.candidates.map((c) => ({
+            id: c.id,
+            bearing: `${c.label} shows the seed's problem in one place`,
+          })),
+          dropped: [],
+        };
+      },
+      async composeBeat(input) {
+        bearings.push(input.topicBearing);
+        return { prose: "x", plantSentence: "", mentioned: [input.topic.subject.id] };
+      },
+    };
+    await composeBraid({
+      source: source(["Abraham Lincoln"]),
+      oracle,
+      seedLabel: "the-culmination",
+    });
+    expect(bearings[0]).toContain("shows the seed's problem");
   });
 });

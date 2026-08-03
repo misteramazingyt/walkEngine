@@ -565,6 +565,8 @@ export async function runBurkeClusterWalk(options: {
           deficiency,
           newSubject: candidate.subject,
           packet,
+          seedSubject,
+          rawSeed: config.rawSeed,
         });
         modelCalls += 1;
 

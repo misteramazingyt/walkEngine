@@ -9,6 +9,12 @@ import type {
   Subject,
 } from "@/domain/burkecluster/types";
 
+// Test oracles judge nothing; selection is exercised in its own tests.
+const keepAll: BraidOracle["selectTopics"] = async (input) => ({
+  kept: input.candidates.map((c) => ({ id: c.id, bearing: "kept for the test" })),
+  dropped: [],
+});
+
 function subject(id: string, pages: string[] = []): Subject {
   return {
     id,
@@ -62,6 +68,7 @@ function source(clusters: Array<{ id: string; pages: string[] }>): BraidSource {
 }
 
 const echoOracle = (): BraidOracle => ({
+  selectTopics: keepAll,
   async composeBeat(input) {
     return {
       prose: `beat ${input.beat.index}`,
@@ -91,6 +98,7 @@ describe("braid composition", () => {
   it("gives each page-topic its own summary to write from", async () => {
     const accounts: string[] = [];
     const oracle: BraidOracle = {
+      selectTopics: keepAll,
       async composeBeat(input) {
         accounts.push(input.topicAccount);
         return { prose: "x", plantSentence: "", mentioned: [input.topic.subject.id] };
@@ -108,6 +116,7 @@ describe("braid composition", () => {
   it("marks a subject as a first mention only once", async () => {
     const firsts: boolean[][] = [];
     const oracle: BraidOracle = {
+      selectTopics: keepAll,
       async composeBeat(input) {
         firsts.push(input.supporting.map((s) => s.firstMention));
         return {
@@ -131,6 +140,7 @@ describe("braid composition", () => {
 
   it("records a plant the writing failed to make", async () => {
     const oracle: BraidOracle = {
+      selectTopics: keepAll,
       async composeBeat(input) {
         return {
           prose: "only the topic",
@@ -149,6 +159,7 @@ describe("braid composition", () => {
 
   it("records a beat that never mentions its own topic", async () => {
     const oracle: BraidOracle = {
+      selectTopics: keepAll,
       async composeBeat() {
         return { prose: "elsewhere entirely", plantSentence: "", mentioned: [] };
       },
@@ -166,6 +177,7 @@ describe("braid composition", () => {
   it("carries the previous beat's prose forward so paragraphs join", async () => {
     const previous: string[] = [];
     const oracle: BraidOracle = {
+      selectTopics: keepAll,
       async composeBeat(input) {
         previous.push(input.previousProse);
         return {

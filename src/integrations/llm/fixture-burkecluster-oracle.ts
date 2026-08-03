@@ -315,6 +315,8 @@ export class FixtureBurkeClusterOracle implements BurkeClusterOracle {
     deficiency: ExplanatoryDeficiency;
     newSubject: Subject;
     packet: ClusterPacket;
+    seedSubject: Subject;
+    rawSeed: string;
   }): Promise<IncipitSubjectum> {
     const label = input.newSubject.label;
     const unlatent = (this.script.unlatentSubjects ?? []).includes(label);

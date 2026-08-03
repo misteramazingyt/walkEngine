@@ -7,6 +7,21 @@ import type { BraidOracle } from "@/domain/braid/types";
 // like real output is how a stub gets mistaken for a result.
 
 export class FixtureBraidOracle implements BraidOracle {
+  /**
+   * Keeps everything. Deliberately: a fixture that silently pruned would
+   * hide whether the real selection is doing any work, and the test that
+   * matters is that a route survives its judge, not that a stub agrees.
+   */
+  async selectTopics(input: Parameters<BraidOracle["selectTopics"]>[0]) {
+    return {
+      kept: input.candidates.map((c) => ({
+        id: c.id,
+        bearing: `fixture: ${c.label} kept without judgment`,
+      })),
+      dropped: [],
+    };
+  }
+
   async composeBeat(input: Parameters<BraidOracle["composeBeat"]>[0]) {
     const supporting = input.supporting.map((s) => s.label);
     const plantSentence =

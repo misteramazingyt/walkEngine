@@ -444,6 +444,15 @@ export interface BurkeClusterOracle {
     deficiency: ExplanatoryDeficiency;
     newSubject: Subject;
     packet: ClusterPacket;
+    /**
+     * The seed, passed explicitly. Without it the gate that asks how a
+     * pivot still answers the seed was answered against the PREVIOUS
+     * subject — the model inferred a seed from what it could see, scored
+     * 0.85 fidelity to that, and a route seeded on the meaning of life
+     * walked to cognitive behavioural therapy through eight such steps.
+     */
+    seedSubject: Subject;
+    rawSeed: string;
   }): Promise<IncipitSubjectum>;
 
   /** The reverse-engineered opening, itself an incipit-subjectum move. */

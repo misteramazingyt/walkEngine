@@ -334,3 +334,32 @@ describe("BurkeCluster composition is optional", () => {
     ).toBe(true);
   });
 });
+
+describe("BurkeCluster measures fidelity against the actual seed", () => {
+  it("gives the incipit the seed rather than letting it infer one", async () => {
+    const oracle = new FixtureBurkeClusterOracle();
+    const seen: Array<{ rawSeed: string; seedLabel: string; previous: string }> = [];
+    const incipit = oracle.incipit.bind(oracle);
+    vi.spyOn(oracle, "incipit").mockImplementation(async (i) => {
+      seen.push({
+        rawSeed: i.rawSeed,
+        seedLabel: i.seedSubject.label,
+        previous: i.previousSubject.label,
+      });
+      return incipit(i);
+    });
+
+    await walk({}, {}, oracle);
+
+    expect(seen.length).toBeGreaterThan(0);
+    for (const call of seen) {
+      // Every pivot sees the seed verbatim, and the seed is not simply
+      // whatever subject preceded it — the substitution that let a route
+      // walk from the meaning of life to cognitive behavioural therapy.
+      expect(call.rawSeed).toBe(BASE.rawSeed);
+      expect(call.seedLabel.length).toBeGreaterThan(0);
+    }
+    const drifted = seen.filter((c) => c.seedLabel === c.previous);
+    expect(drifted.length).toBeLessThan(seen.length);
+  });
+});

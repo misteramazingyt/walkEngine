@@ -45,8 +45,14 @@ mentioned in passing IS latent in it, so the latency test alone would license
 this route to follow its own scenery away from what was asked.
 
 So also state `seedQuestionRelation`: how the NEW subject still answers the
-question the SEED asked — not the question the previous subject asked. Name
-the seed's concern and say what this subject contributes to it.
+question the SEED asked — not the question the previous subject asked.
+
+The seed is given to you at the top of the input, quoted. Use THAT. Do not
+infer a seed from the previous subject, and do not write "the seed question,
+inferred from the previous subject, concerns…": if you find yourself
+restating the previous subject as though it were the seed, the route has
+already drifted and your score should say so. Quote the seed's own words in
+your relation so the substitution is impossible.
 
 Then set `seedFidelity` between 0 and 1. Judge it honestly:
 
