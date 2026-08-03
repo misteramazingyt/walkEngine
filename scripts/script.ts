@@ -290,7 +290,7 @@ before: ${plan.openingUnderstanding}`);
         gloss: v.gloss,
         firstMention: !introduced.has(v.title),
       }));
-    const out = await scriptOracle.writeBeat({
+    const beatArgs = {
       index: i + 1,
       total: plan.steps.length,
       seed: parsed.seedText,
@@ -308,7 +308,25 @@ before: ${plan.openingUnderstanding}`);
       substrate: subj.substrate,
       institution: subj.institution,
       selfUnderstanding: subj.selfUnderstanding,
-    });
+    };
+    let out;
+    try {
+      out = await scriptOracle.writeBeat(beatArgs);
+    } catch {
+      // A full article can trip the content filter (PROHIBITED_CONTENT
+      // killed a run at beat 6 of 9). The extract is the likeliest cause
+      // and the summary is safe; a beat written from less is worth more
+      // than eight beats discarded.
+      try {
+        out = await scriptOracle.writeBeat({ ...beatArgs, extract: "" });
+        console.log(`  beat ${i + 1}: extract blocked; written from summary`);
+      } catch (error) {
+        console.log(
+          `  beat ${i + 1} (${subj.title}) failed twice and was skipped: ${error instanceof Error ? error.message.slice(0, 80) : error}`,
+        );
+        continue;
+      }
+    }
     for (const sup of supporting) introduced.add(sup.title);
     introduced.add(subj.title);
     ledger.push({ index: i + 1, determination: st.determination });
