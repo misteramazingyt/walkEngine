@@ -87,6 +87,17 @@ export function allocateBeats(
     weight.set(member.id, Math.min(6, 1 + (produces ? 2 : 0) + incident));
   }
 
+  // The closing sixth accelerates. Measured: dwell runs average 3.80
+  // paragraphs through the middle and 2.12 at the end, so subjects arrive
+  // roughly twice as fast while the sentences lengthen. Whatever depth the
+  // last subjects earned, they do not get to spend it.
+  const closingFrom = Math.floor(plan.cast.length * (5 / 6));
+  plan.cast.forEach((member, index) => {
+    if (index >= closingFrom) {
+      weight.set(member.id, Math.max(1, (weight.get(member.id) ?? 1) * 0.56));
+    }
+  });
+
   const total = [...weight.values()].reduce((a, b) => a + b, 0) || 1;
   const beats = new Map<string, number>();
   let assigned = 0;
@@ -139,10 +150,16 @@ export function assignBridgeKinds(plan: RoutePlan): void {
     }
     // Otherwise spend the remaining quota, commonest first, skipping
     // carried_subject since the topic demonstrably changed.
+    // In the closing sixth the mix shifts: consequence rises from 19.5% to
+    // 28.6% and return_to_earlier from 1.8% to 4.8%, which is where the
+    // sense of having gained something comes from — the end reaches back.
+    const closing = i >= plan.steps.length * (5 / 6);
+    const preference = closing
+      ? ["return_to_earlier", "consequence", "hard_cut", "contrast"]
+      : BRIDGE_MIX.filter(([k]) => k !== "carried_subject").map(([k]) => k);
     const pick =
-      BRIDGE_MIX.filter(([k]) => k !== "carried_subject").find(
-        ([k]) => (quota.get(k) ?? 0) > 0,
-      )?.[0] ?? "consequence";
+      preference.find((k) => (quota.get(k) ?? 0) > 0) ??
+      (closing ? "consequence" : "consequence");
     plan.steps[i].bridgeKind = pick as RoutePlan["steps"][number]["bridgeKind"];
     quota.set(pick, (quota.get(pick) ?? 0) - 1);
   }

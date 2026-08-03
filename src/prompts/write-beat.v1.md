@@ -158,3 +158,36 @@ close by naming a subject that is coming, and do not gesture forward.
 Measured: the bridging text sits at the head of the incoming paragraph 288
 times against 3 at the tail of the outgoing one. Mention your supporting
 cast in the body, never in the final sentence.
+
+---
+
+# If this beat is near the end
+
+Measured over the closing sixth of 14 episodes, against their middles:
+
+  dwell per subject   3.80 → 2.12 paragraphs   subjects arrive twice as fast
+  consequence         19.5% → 28.6%            each follows from the last
+  return_to_earlier   1.8% → 4.8%              the end reaches back
+  problems raised     8.9% → 5.7%              stop opening new ones
+  questions asked     0.26 → 0.17 per para     stop asking
+  sentence length     17 → 20.5 words          the line broadens
+
+So an ending is not a slowing down. It is an acceleration of material inside
+a widening sentence: things arrive faster, each because of the last, while
+the prose stops interrogating and starts stating. Do not raise a new
+difficulty. Do not ask a question you will not answer here.
+
+Reach back. Name something established early, now carrying what it has since
+picked up. That reaching is where a reader's sense of having gained
+something actually comes from — not from a summary of what they were told.
+
+# The closing beat
+
+Encapsulate the movement itself: what a person could once take for granted,
+what happened to it, and what they are left holding. Write it for someone
+moderately educated and not in this field — no jargon, no scaffolding, and
+nothing about routes, walks, subjects, beats, or any other term from the
+machinery that produced this. Those words do not exist for the reader.
+
+Land it. The whole piece has been arriving at this; do not hedge it into a
+question, and do not tell the reader what to think about it.
