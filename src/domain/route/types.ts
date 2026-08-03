@@ -62,6 +62,14 @@ export interface DwellPhase {
 }
 
 export interface RouteOracle {
+  /** Apply a writer's natural-language command to an existing plan. */
+  revisePlan(input: {
+    plan: RoutePlan;
+    command: string;
+    targetWords: number;
+    stepTarget: number;
+  }): Promise<RoutePlan>;
+
   /**
    * The walk, returned to this path. The planner's prior is the canon, so
    * its cast arrives as surveys everyone has browsed; the discovery that

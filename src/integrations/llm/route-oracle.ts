@@ -129,6 +129,26 @@ export class LlmRouteOracle implements RouteOracle {
     });
   }
 
+  async revisePlan(input: {
+    plan: unknown;
+    command: string;
+    targetWords: number;
+    stepTarget: number;
+  }) {
+    return this.provider.generateStructured({
+      promptId: "revise-plan.v1",
+      system: loadPrompt("revise-plan.v1"),
+      user: [
+        `THE WRITER'S COMMAND:\n${input.command}`,
+        `WORD BUDGET: about ${input.targetWords} words. BEATS: about ${input.stepTarget}.`,
+        `CURRENT PLAN:\n${JSON.stringify(input.plan, null, 1).slice(0, 30000)}`,
+      ].join("\n\n"),
+      schema: routePlanSchema,
+      temperature: 0.8,
+      maxTokens: 60000,
+    });
+  }
+
   async specifySubject(input: {
     title: string;
     extract: string;

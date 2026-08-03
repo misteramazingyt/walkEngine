@@ -32,6 +32,8 @@ async function main(): Promise<void> {
   let steps = 0;
   let words = 0;
   let out2 = "drafts/script.md";
+  let planFile = "";
+  let reviseCmd = "";
   const rest: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--plan-only") planOnly = true;
@@ -39,15 +41,29 @@ async function main(): Promise<void> {
     else if (argv[i] === "--words") words = Number(argv[++i]);
     else if (argv[i] === "--out") out2 = argv[++i];
     else if (argv[i] === "--brief-file") rest.push(readFileSync(argv[++i], "utf8"));
+    else if (argv[i] === "--plan-file") planFile = argv[++i];
+    else if (argv[i] === "--revise") reviseCmd = argv[++i];
     else rest.push(argv[i]);
   }
-  const brief = rest.join(" ").trim();
-  if (!brief) throw new Error('Give a brief: npm run script -- "…"');
-
-  rule("Brief");
-  console.log(brief);
-
-  const parsed = await createBriefOracle().parse({ brief });
+  let brief = rest.join(" ").trim();
+  let savedPlan: RoutePlan | null = null;
+  let parsed;
+  if (planFile) {
+    // Revision path: reuse the stored brief, reading and plan, so a
+    // natural-language command operates on what exists instead of rolling
+    // fresh dice.
+    const saved = JSON.parse(readFileSync(planFile, "utf8"));
+    brief = saved.brief;
+    parsed = saved.parsed;
+    savedPlan = saved.plan as RoutePlan;
+    rule("Revising saved plan");
+    console.log(planFile);
+  } else {
+    if (!brief) throw new Error('Give a brief: npm run script -- "…"');
+    rule("Brief");
+    console.log(brief);
+    parsed = await createBriefOracle().parse({ brief });
+  }
 
   // The brief's own numbers win unless a flag overrides them. Beat count is\n// derived from the budget at Burke's median paragraph length rather than
   // set independently: asking for 1950 words in 18 beats and for beats of
@@ -72,18 +88,44 @@ async function main(): Promise<void> {
   const scriptOracle = new LlmScriptOracle(provider);
 
   rule("Planning the route");
-  const plan: RoutePlan = await routeOracle.plan({
-    seed: parsed.seedText,
-    attention: parsed.attentionProgram,
-    temporalStart: parsed.temporalStart,
-    temporalEnd: parsed.temporalEnd,
-    stepTarget,
-    targetWords,
-    density: parsed.density,
-    namedConnections: parsed.namedConnections,
-    thesis: parsed.thesis,
-  });
+  let plan: RoutePlan =
+    savedPlan ??
+    (await routeOracle.plan({
+      seed: parsed.seedText,
+      attention: parsed.attentionProgram,
+      temporalStart: parsed.temporalStart,
+      temporalEnd: parsed.temporalEnd,
+      stepTarget,
+      targetWords,
+      density: parsed.density,
+      namedConnections: parsed.namedConnections,
+      thesis: parsed.thesis,
+    }));
+  if (reviseCmd) {
+    rule("Applying revision");
+    console.log(reviseCmd);
+    plan = (await routeOracle.revisePlan({
+      plan,
+      command: reviseCmd,
+      targetWords,
+      stepTarget,
+    })) as RoutePlan;
+  }
   console.log(`${plan.title}\n\n${plan.thesis}\n`);
+
+  // Persist the plan beside the draft, so later natural-language commands
+  // revise this run rather than replanning from nothing.
+  const planPath = out2.replace(/\.md$/, "") + ".plan.json";
+  writeFileSync(
+    planPath,
+    JSON.stringify(
+      { brief, parsed, plan: JSON.parse(JSON.stringify(plan)) },
+      null,
+      1,
+    ),
+    "utf8",
+  );
+  console.log(`plan saved to ${planPath}`);
 
   rule("Verifying against Wikipedia");
   const gateway = new WikipediaGateway("en", new RequestBudget(400));
