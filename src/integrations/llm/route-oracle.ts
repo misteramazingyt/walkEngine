@@ -45,7 +45,10 @@ export class LlmScriptOracle implements ScriptOracle {
         `HOW THE OBJECT LOOKS AFTERWARDS: ${input.step.changesTheObject}`,
         `BEAT ${input.index} of ${input.total}`,
         `SUBJECT: ${input.title}`,
-        `ENCYCLOPEDIA SUMMARY (real; use its specifics):
+        input.extract.trim().length > 200
+          ? `THE ARTICLE (real; find the pressure this person or thing was under):
+${input.extract}`
+          : `ENCYCLOPEDIA SUMMARY (real; use its specifics):
 ${input.summary}`,
         `SCENE THE PLANNER WANTED: ${input.step.scene}`,
         `CONFIGURATION:

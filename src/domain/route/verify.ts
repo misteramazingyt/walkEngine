@@ -10,6 +10,8 @@ export interface VerifiedSubject {
   title: string;
   gloss: string;
   summary: string;
+  /** The whole article, so a beat has circumstances and not a definition. */
+  extract: string;
   url: string;
   substrate: string;
   institution: string;
@@ -90,11 +92,25 @@ export async function verifyRoute(options: {
       title: info.title,
       gloss: member.gloss,
       summary: info.summary,
+      extract: "",
       url: info.url,
       substrate: member.substrate,
       institution: member.institution,
       selfUnderstanding: member.selfUnderstanding,
     });
+  }
+
+  // Fetch the full article for everyone who survived. One request each,
+  // and the difference between a paragraph that defines and one that tells.
+  const withExtract = wikipedia as { getArticleExtract?: (t: string) => Promise<string> };
+  if (withExtract.getArticleExtract) {
+    for (const subject of subjects.values()) {
+      try {
+        subject.extract = await withExtract.getArticleExtract(subject.title);
+      } catch {
+        subject.extract = "";
+      }
+    }
   }
 
   return { subjects, dropped, repaired };

@@ -193,6 +193,7 @@ before: ${plan.openingUnderstanding}`);
       step: st,
       title: subj.title,
       summary: subj.summary,
+      extract: subj.extract,
       previousProse: previous,
       objectOfInquiry: plan.objectOfInquiry,
       question: plan.question,

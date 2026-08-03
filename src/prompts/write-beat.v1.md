@@ -150,11 +150,19 @@ not the one that comes easiest.
 time", "meanwhile" — none of these appear in the measured vocabulary. They
 say when, not why, and a reader learns nothing from them.
 
-**Nor is co-occurrence.** "Parallel to", "alongside", "at the same time",
-"likewise", "similarly", "in a related development" — these assert that two
-things sat near each other and leave the reader to supply the connection
-that is your job. They are the commonest way a `consequence` seam gets
-written without any consequence in it.
+**Nor is co-occurrence, anywhere in the paragraph.** "Parallel to",
+"alongside", "at the same time", "meanwhile", "likewise", "similarly", "in a
+related development", "just as X, so Y" — these assert that two things sat
+near each other and leave the reader to supply the connection that is your
+job. They are the commonest way a `consequence` seam gets written with no
+consequence in it.
+
+There is one exception and it is not a loophole. You may set two things side
+by side IF, later in this same paragraph, you show what actually ran between
+them: a person who moved, a technique that was borrowed, a text that was
+read, a cost that was shared. State the parallel, then cash it. A parallel
+still uncashed at the end of the paragraph should not have been written, and
+the repair is to cut one of the two things.
 
 A `consequence` bridge must name the MECHANISM: what the previous subject
 did, made possible, made necessary, or made cheap, such that this one
@@ -203,3 +211,34 @@ machinery that produced this. Those words do not exist for the reader.
 
 Land it. The whole piece has been arriving at this; do not hedge it into a
 question, and do not tell the reader what to think about it.
+
+---
+
+# Find the pressure, not the significance
+
+You are given the whole article, not a summary. Read it for CIRCUMSTANCES:
+who this person was quarrelling with, what had just happened to them, what
+they were accused of, what they could not afford, who had beaten them to it,
+what was about to be taken away.
+
+A paragraph fails when its subject appears as an instance of a trend. "How
+could this self-constructed identity assert its coherence to a wider
+audience? Authors like Rousseau sought to answer this" — that is a
+generalisation with a name attached, and the name is interchangeable. The
+reader learns that Rousseau exemplifies something, which is not a reason to
+care about Rousseau.
+
+It succeeds when the subject appears as somebody under pressure. Rousseau
+began the Confessions after a pamphlet exposed what he had done with his
+children; he was writing against an accusation, in public, to people who had
+read it. THAT is why this book and not another, and it is in the article.
+
+So: name the pressure before you name the significance, and let the
+significance stay implied. If the article gives you no pressure — no
+quarrel, no accusation, no scarcity, no rivalry — you have been given the
+wrong subject, and the honest move is to write it short rather than inflate
+it with importance.
+
+Never write that something "laid the groundwork", "paved the way", "marked a
+profound shift", or "became a powerful mechanism for". Those are the
+sentences that appear when a paragraph has no circumstances to report.

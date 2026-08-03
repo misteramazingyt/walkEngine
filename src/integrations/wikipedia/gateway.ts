@@ -209,6 +209,32 @@ export class WikipediaGateway implements WalkGateway {
     return (body.query?.search ?? []).map((s) => s.title);
   }
 
+  /**
+   * The FULL plain-text article, not the lead.
+   *
+   * getArticleInfos asks for exintro, which returns a definition and no
+   * situation: from it a writer learns what the Confessions is and not that
+   * Rousseau began it after Voltaire's pamphlet exposed his abandoning of
+   * his children. Definitions produce paragraphs about the significance of
+   * things; circumstances produce paragraphs about people under pressure.
+   *
+   * MediaWiki only serves non-intro extracts one page at a time, so this
+   * costs a request per subject. That is the price of having anything
+   * specific to say.
+   */
+  async getArticleExtract(title: string, maxChars = 12000): Promise<string> {
+    const body = (await this.apiGet({
+      action: "query",
+      titles: title,
+      redirects: "1",
+      prop: "extracts",
+      explaintext: "1",
+      exlimit: "1",
+    })) as { query?: { pages?: Array<{ extract?: string }> } };
+    const extract = body.query?.pages?.[0]?.extract ?? "";
+    return extract.slice(0, maxChars);
+  }
+
   /** Resolve a start specification to a canonical article title. */
   async resolveStart(start: {
     kind: "TITLE" | "URL" | "TOPIC" | "RANDOM";

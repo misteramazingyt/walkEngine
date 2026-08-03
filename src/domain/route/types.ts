@@ -33,6 +33,8 @@ export interface ScriptOracle {
     step: RouteStep;
     title: string;
     summary: string;
+    /** The whole article: circumstances, disputes, dates, quarrels. */
+    extract: string;
     previousProse: string;
     /** Subjects live now, to be mentioned without being explained. */
     supporting: Array<{ title: string; gloss: string; firstMention: boolean }>;
