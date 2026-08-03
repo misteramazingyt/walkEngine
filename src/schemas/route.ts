@@ -12,6 +12,23 @@ export const EDGE_TYPES = [
   "recoding",
 ] as const;
 
+/**
+ * The measured vocabulary, from 653 of Burke's seams. Shares: carried
+ * subject 53%, consequence 21%, problem raised 8%, hard cut 4%, contrast
+ * 3.5%, return 2.3%, resemblance 0.5%. Chronology — "centuries later" — is
+ * not among them at all, which is exactly what our drafts reached for when
+ * nothing told them what kind of seam they were writing.
+ */
+export const BRIDGE_KINDS = [
+  "carried_subject",
+  "consequence",
+  "problem_raised",
+  "instrument_needed",
+  "return_to_earlier",
+  "contrast",
+  "hard_cut",
+] as const;
+
 export const BEAT_KINDS = ["open", "advance", "recapitulate", "intervene", "close"] as const;
 
 export const STANCES = ["sedimentation", "contested_victory"] as const;
@@ -37,6 +54,8 @@ export const routeStepSchema = z.object({
   beatKind: z.enum(BEAT_KINDS).default("advance"),
   /** Which cast member this beat is ABOUT. Several beats may share one. */
   subjectId: z.string().min(1),
+  /** Assigned by the software to match the measured distribution. */
+  bridgeKind: z.enum(BRIDGE_KINDS).default("consequence"),
   /** What a reader should picture. One concrete scene, not a summary. */
   scene: z.string().min(1),
   edgeType: z.enum(EDGE_TYPES),

@@ -15,7 +15,7 @@
 import "dotenv/config";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { verifyRoute } from "@/domain/route/verify";
-import { computeLiveness } from "@/domain/route/braid";
+import { assignBridgeKinds, computeLiveness } from "@/domain/route/braid";
 import { RequestBudget } from "@/domain/walk/types";
 import { WikipediaGateway } from "@/integrations/wikipedia/gateway";
 import { GeminiProvider } from "@/integrations/gemini/provider";
@@ -99,6 +99,7 @@ async function main(): Promise<void> {
   plan.steps = plan.steps.filter((st) => verified.subjects.has(st.subjectId));
   if (plan.steps.length === 0) throw new Error("No beats survived verification");
 
+  assignBridgeKinds(plan);
   const braid = computeLiveness(plan, { liveTarget: 12 });
 
   rule("Object of inquiry");
@@ -122,7 +123,7 @@ before: ${plan.openingUnderstanding}`);
       .map((id) => verified.subjects.get(id)?.title)
       .filter(Boolean);
     console.log(`${String(i + 1).padStart(3)}. ${subj.title}  [${st.beatKind}]`);
-    console.log(`      with: ${support.join(", ") || "—"}`);
+    console.log(`      ${st.bridgeKind} · with: ${support.join(", ") || "—"}`);
   });
 
   if (planOnly) {

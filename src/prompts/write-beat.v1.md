@@ -120,3 +120,41 @@ particulars were too weak.
 
 Aim for four to six moves. Six is already busy; our drafts ran 6.4 and felt
 crammed.
+---
+
+# The seam you have been given
+
+You are told this beat's BRIDGE KIND. It was dealt to match the measured
+distribution across 653 of Burke's seams, so realise the one you have and
+not the one that comes easiest.
+
+  carried_subject     The same subject continues. Do not transition at all.
+                      No "meanwhile", no "later" — pick up mid-thought, as
+                      though the paragraph break were only a breath.
+  consequence         What the last beat's subject PRODUCED made this one
+                      possible or necessary. Name the production, not the
+                      succession.
+  problem_raised      The last beat left something unresolved. Open on the
+                      difficulty, then let this subject answer it.
+  instrument_needed   The last beat showed something was required. This beat
+                      supplies the means.
+  return_to_earlier   Come back to a subject already established, now under
+                      a determination it did not have before. Say what has
+                      changed about it.
+  contrast            Set against the last: a different place, class, or
+                      choice. Rare — 3.5% — so make the opposition real.
+  hard_cut            No bridge. Begin the new thing cleanly. This is a
+                      legitimate move he makes at 4%, not a failure.
+
+**Chronology is not a bridge.** "Centuries later", "by the 1600s", "over
+time", "meanwhile" — none of these appear in the measured vocabulary. They
+say when, not why, and a reader learns nothing from them. If you find
+yourself writing one, the bridge kind you were given has not been realised.
+
+# End on your own subject
+
+The last sentence of this beat must be about the beat's own subject. Do not
+close by naming a subject that is coming, and do not gesture forward.
+Measured: the bridging text sits at the head of the incoming paragraph 288
+times against 3 at the tail of the outgoing one. Mention your supporting
+cast in the body, never in the final sentence.

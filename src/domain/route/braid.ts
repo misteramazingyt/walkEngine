@@ -35,6 +35,54 @@ function median(xs: number[]): number {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
+/**
+ * Deal bridge kinds across the seams in the measured proportions.
+ *
+ * Asking a model to hit 53% produced 11%, the same way asking it to keep a
+ * dozen subjects live produced six: proportions are arithmetic. So the kinds
+ * are dealt here and the model is told which one to realise, which is
+ * judgment and the thing it is good at.
+ */
+const BRIDGE_MIX: Array<[string, number]> = [
+  ["carried_subject", 0.53],
+  ["consequence", 0.21],
+  ["problem_raised", 0.084],
+  ["hard_cut", 0.043],
+  ["contrast", 0.035],
+  ["return_to_earlier", 0.023],
+  ["instrument_needed", 0.015],
+];
+
+export function assignBridgeKinds(plan: RoutePlan): void {
+  const seams = plan.steps.length - 1;
+  if (seams < 1) return;
+
+  const quota = new Map<string, number>();
+  for (const [kind, share] of BRIDGE_MIX) {
+    quota.set(kind, Math.round(share * seams));
+  }
+
+  for (let i = 1; i < plan.steps.length; i++) {
+    const sameSubject = plan.steps[i].subjectId === plan.steps[i - 1].subjectId;
+    // A seam that keeps the same subject IS a carried subject; nothing else
+    // can be true of it, whatever the quota says.
+    if (sameSubject) {
+      plan.steps[i].bridgeKind = "carried_subject";
+      quota.set("carried_subject", (quota.get("carried_subject") ?? 0) - 1);
+      continue;
+    }
+    // Otherwise spend the remaining quota, commonest first, skipping
+    // carried_subject since the topic demonstrably changed.
+    const pick =
+      BRIDGE_MIX.filter(([k]) => k !== "carried_subject").find(
+        ([k]) => (quota.get(k) ?? 0) > 0,
+      )?.[0] ?? "consequence";
+    plan.steps[i].bridgeKind = pick as (typeof plan.steps)[number]["bridgeKind"];
+    quota.set(pick, (quota.get(pick) ?? 0) - 1);
+  }
+  plan.steps[0].bridgeKind = "hard_cut";
+}
+
 export function computeLiveness(
   plan: RoutePlan,
   options: { liveTarget?: number; supportingPerBeat?: number } = {},
