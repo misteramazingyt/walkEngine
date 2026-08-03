@@ -172,8 +172,9 @@ async function main(): Promise<void> {
       oracle: createBraidOracle(),
       config: args.config,
       seedLabel,
-      onProgress: (beat, total) =>
-        process.stdout.write(`\r  beat ${beat}/${total}   `),
+      onProgress: (beat, total) => {
+        process.stdout.write(`\r  beat ${beat}/${total}   `);
+      },
     });
     console.log("\n");
 
