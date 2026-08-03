@@ -253,6 +253,10 @@ export class LlmBurkeClusterOracle implements BurkeClusterOracle {
         .filter(Boolean)
         .join("\n\n"),
       schema: interpretationSchema,
+      // The largest structured output in the system: a shortlist of clusters,
+      // each with a subject, twenty cluster scores and sixteen subject
+      // scores. It truncated repeatedly at the shared default.
+      maxTokens: 32000,
     });
 
     return result.interpretations.map((entry) => ({

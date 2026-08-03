@@ -82,11 +82,24 @@ export class GeminiProvider implements LanguageModelProvider {
     if (body.promptFeedback?.blockReason) {
       throw new Error(`Gemini blocked the prompt: ${body.promptFeedback.blockReason}`);
     }
-    const parts = body.candidates?.[0]?.content?.parts ?? [];
+    const candidate = body.candidates?.[0];
+    const parts = candidate?.content?.parts ?? [];
     const text = parts.map((p) => p.text ?? "").join("");
+    // A response cut off at the token ceiling is still "text", and still
+    // unparseable — which surfaced four walks in a row as "Response was not
+    // valid JSON", a message that sends you looking at the schema instead of
+    // the budget. Say which it was. Note that gemini-2.5 spends reasoning
+    // tokens from this same ceiling, so the limit is never just the prose.
+    if (candidate?.finishReason === "MAX_TOKENS") {
+      throw new Error(
+        `Gemini hit its ${options.maxTokens}-token output ceiling before finishing` +
+          " (reasoning tokens are drawn from this budget too); raise maxTokens" +
+          " for this call or ask it for less at once",
+      );
+    }
     if (text.trim().length === 0) {
       throw new Error(
-        `Gemini returned no text (finishReason: ${body.candidates?.[0]?.finishReason ?? "none"})`,
+        `Gemini returned no text (finishReason: ${candidate?.finishReason ?? "none"})`,
       );
     }
     return text;
@@ -112,7 +125,7 @@ export class GeminiProvider implements LanguageModelProvider {
         user: user + extra,
         json: true,
         temperature: request.temperature ?? 0.2,
-        maxTokens: request.maxTokens ?? 8192,
+        maxTokens: request.maxTokens ?? 16384,
       });
       let candidate: unknown;
       try {
