@@ -76,7 +76,15 @@ export interface RouteOracle {
     nextExtract: string;
     claimed: string;
     claimedEvidence: string;
-  }): Promise<{ found: boolean; carrier: string; evidence: string }>;
+    /** What the previous subject left changed in the shared world. */
+    changedEnvironment: string;
+  }): Promise<{
+    found: boolean;
+    carrier: string;
+    evidence: string;
+    mechanism: string;
+    motivation: string;
+  }>;
 
   /**
    * A subject that earned several beats needs several distinct episodes,

@@ -130,6 +130,7 @@ export class LlmRouteOracle implements RouteOracle {
     nextExtract: string;
     claimed: string;
     claimedEvidence: string;
+    changedEnvironment: string;
   }) {
     return this.provider.generateStructured({
       promptId: "verify-carrier.v1",
@@ -137,6 +138,7 @@ export class LlmRouteOracle implements RouteOracle {
       user: [
         `FROM: ${input.prevTitle}`,
         `TO: ${input.nextTitle}`,
+        `WHAT THE FIRST SUBJECT LEFT CHANGED IN THE WORLD: ${input.changedEnvironment}`,
         `CLAIMED CARRIER: ${input.claimed}`,
         `CLAIMED EVIDENCE: ${input.claimedEvidence}`,
         `ARTICLE ON ${input.prevTitle}:

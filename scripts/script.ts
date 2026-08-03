@@ -205,14 +205,21 @@ async function main(): Promise<void> {
         nextExtract: b.extract,
         claimed: st.carrier,
         claimedEvidence: st.carrierEvidence,
+        changedEnvironment: prev.changedEnvironment,
       });
       if (verdict.found && verdict.carrier.trim().length > 0) {
         const replaced = verdict.carrier !== st.carrier;
         st.carrier = verdict.carrier;
         st.carrierEvidence = verdict.evidence;
-        st.entry = verdict.carrier;
+        // The entry carries both halves of the handoff: the changed world
+        // and the carrier arriving into it. The writer narrates the loop.
+        st.entry =
+          verdict.motivation.trim().length > 0
+            ? `${verdict.motivation} ${verdict.carrier}`
+            : verdict.carrier;
+        st.arisesFrom = verdict.motivation || st.arisesFrom;
         console.log(
-          `  ${a.title} → ${b.title}: ${replaced ? "replaced" : "confirmed"}`,
+          `  ${a.title} → ${b.title}: ${replaced ? "replaced" : "confirmed"} [${verdict.mechanism}]`,
         );
       } else {
         st.bridgeKind = "hard_cut";

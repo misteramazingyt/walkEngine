@@ -326,3 +326,21 @@ a seam you have not earned.
 `inheritedPressure` and `transformedPressure`: what the previous subject was
 struggling with, and what that struggle became once it arrived here. A
 pressure that arrives unchanged has not moved anywhere.
+
+
+---
+
+# What did it leave changed?
+
+Every step declares `changedEnvironment`: what is different in the shared
+world once this subject's work is done. A law in force. A price fallen. A
+book in ten thousand hands. A skill for hire in every market town. An
+expectation that did not exist before.
+
+This is the engine of the route. The next subject's carrier does not arrive
+from nowhere — it walks into the world this change made, and the route is
+checked on exactly that: an arrival that the previous change does not
+motivate, and that no person or object or honest parallel connects, will be
+cut. So choose subjects whose outputs genuinely change the conditions the
+next subject needs, and state the change as a fact about the world, not a
+claim about significance.

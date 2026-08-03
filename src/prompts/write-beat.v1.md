@@ -356,3 +356,17 @@ decree — whichever the entry gives you — doing what it did.
 
 If the entry is empty because the seam is a hard cut, begin the new subject
 cleanly on its own scene. Never bridge a cut with a concept.
+
+
+---
+
+# Close on the changed world
+
+A subject's last beat should end with the world visibly altered by it — the
+thing its work leaves behind: the register on the shelf in every parish, the
+Bible in the pedlar's pack, the tariff list beside the confessor. That is
+still ending on your own subject; the change IS the subject's output. Do not
+say what the change means. Show it in place, and stop.
+
+The next beat's entry then narrates an arrival into that changed world:
+the loop the piece runs on is change, arrival, work, change.

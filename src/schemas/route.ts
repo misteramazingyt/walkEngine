@@ -96,6 +96,15 @@ export const routeStepSchema = z.object({
   /** What that pressure became once it arrived here. */
   transformedPressure: z.string().min(1),
   /**
+   * The meta-bridge's first half: what this subject's work left CHANGED in
+   * the shared world by the time the route moves on. A law in force, a
+   * price fallen, a book in circulation, a skill for hire, an expectation
+   * created. Not what the subject "was" — what is now different because of
+   * it. The next subject's carrier walks into this changed world, and the
+   * handoff check judges whether the arrival is actually motivated by it.
+   */
+  changedEnvironment: z.string().min(1),
+  /**
    * The road not taken. A causal chain asserts necessity; a contingent
    * traversal exhibits the fork and declines to naturalize it.
    */
@@ -207,10 +216,27 @@ export const dwellExpansionSchema = z.object({
   phases: z.array(dwellPhaseSchema).min(1).max(6),
 });
 
+export const HANDOFF_MECHANISMS = [
+  "changed_conditions",
+  "created_demand",
+  "object_travels",
+  "person_travels",
+  "parallel_joined",
+  "none",
+] as const;
+
 export const carrierVerdictSchema = z.object({
   found: z.boolean(),
   /** The verified or replaced carrier: an event with an agent and a date. */
   carrier: z.string().default(""),
   /** The supporting passage, quoted or closely paraphrased. */
   evidence: z.string().default(""),
+  /** The machinery under the seam, judged from the articles. */
+  mechanism: z.enum(HANDOFF_MECHANISMS).default("none"),
+  /**
+   * One or two sentences: how the previous subject's changed world summons
+   * this carrier — or, for person/object links, who or what crossed and how
+   * they came to. This is what the writer narrates at the seam.
+   */
+  motivation: z.string().default(""),
 });
