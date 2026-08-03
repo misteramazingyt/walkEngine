@@ -5,8 +5,23 @@ import type { RoutePlanModel, RouteStepModel } from "@/schemas/route";
 // their output reads like a link crawl: adjacency is the only relation a
 // crawl can see, so it becomes the only relation the prose can express.
 
-export type RouteStep = RouteStepModel;
-export type RoutePlan = RoutePlanModel;
+/**
+ * Bridge kind is not part of the planning schema: it is dealt by the
+ * software to match the measured distribution, and showing the model the
+ * enum only invited it to fill the field with values outside it.
+ */
+export type BridgeKind =
+  | "carried_subject"
+  | "consequence"
+  | "problem_raised"
+  | "instrument_needed"
+  | "return_to_earlier"
+  | "contrast"
+  | "hard_cut";
+
+export type RouteStep = RouteStepModel & { bridgeKind?: BridgeKind };
+/** Steps carry the software-assigned bridge kind the schema does not. */
+export type RoutePlan = Omit<RoutePlanModel, "steps"> & { steps: RouteStep[] };
 
 
 

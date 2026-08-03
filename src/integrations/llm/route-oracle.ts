@@ -28,7 +28,7 @@ export class LlmScriptOracle implements ScriptOracle {
         `THE QUESTION BEING ASKED OF IT: ${input.question}`,
         `STANCE: ${input.stance}`,
         `THIS BEAT IS A ${input.step.beatKind.toUpperCase()}`,
-        `BRIDGE KIND FOR THIS SEAM — realise this one: ${input.step.bridgeKind}`,
+        `BRIDGE KIND FOR THIS SEAM — realise this one: ${input.step.bridgeKind ?? "consequence"}`,
         input.ledger.length > 0
           ? "DETERMINATIONS ESTABLISHED SO FAR:\n" +
             input.ledger

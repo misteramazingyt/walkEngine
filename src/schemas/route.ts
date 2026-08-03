@@ -64,14 +64,12 @@ export const routeSubjectSchema = z.object({
 });
 
 export const routeStepSchema = z.object({
-  beatKind: z.enum(BEAT_KINDS).default("advance"),
+  beatKind: z.enum(BEAT_KINDS).catch("advance"),
   /** Which cast member this beat is ABOUT. Several beats may share one. */
   subjectId: z.string().min(1),
-  /** Assigned by the software to match the measured distribution. */
-  bridgeKind: z.enum(BRIDGE_KINDS).default("consequence"),
   /** What a reader should picture. One concrete scene, not a summary. */
   scene: z.string().min(1),
-  edgeType: z.enum(EDGE_TYPES),
+  edgeType: z.enum(EDGE_TYPES).catch("condition_of_possibility"),
   /** How this step arises from the previous one, in its own terms. */
   arisesFrom: z.string().min(1),
   /**

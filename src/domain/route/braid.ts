@@ -143,7 +143,7 @@ export function assignBridgeKinds(plan: RoutePlan): void {
       BRIDGE_MIX.filter(([k]) => k !== "carried_subject").find(
         ([k]) => (quota.get(k) ?? 0) > 0,
       )?.[0] ?? "consequence";
-    plan.steps[i].bridgeKind = pick as (typeof plan.steps)[number]["bridgeKind"];
+    plan.steps[i].bridgeKind = pick as RoutePlan["steps"][number]["bridgeKind"];
     quota.set(pick, (quota.get(pick) ?? 0) - 1);
   }
   plan.steps[0].bridgeKind = "hard_cut";

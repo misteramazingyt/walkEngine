@@ -20,6 +20,7 @@ import { RequestBudget } from "@/domain/walk/types";
 import { WikipediaGateway } from "@/integrations/wikipedia/gateway";
 import { GeminiProvider } from "@/integrations/gemini/provider";
 import { LlmRouteOracle, LlmScriptOracle } from "@/integrations/llm/route-oracle";
+import type { RoutePlan } from "@/domain/route/types";
 import { createBriefOracle } from "@/server/oracle-factory";
 
 const rule = (label: string) =>
@@ -71,7 +72,7 @@ async function main(): Promise<void> {
   const scriptOracle = new LlmScriptOracle(provider);
 
   rule("Planning the route");
-  const plan = await routeOracle.plan({
+  const plan: RoutePlan = await routeOracle.plan({
     seed: parsed.seedText,
     attention: parsed.attentionProgram,
     temporalStart: parsed.temporalStart,
