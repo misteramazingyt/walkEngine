@@ -370,3 +370,14 @@ say what the change means. Show it in place, and stop.
 
 The next beat's entry then narrates an arrival into that changed world:
 the loop the piece runs on is change, arrival, work, change.
+
+---
+
+# The seam may be homely
+
+Across 166 of Burke's topic changes, roughly one in three carries a personal
+texture whatever its machinery: two men who shared a workshop, a letter kept
+for years, a student turning up decades later in the wrong country. When the
+motivation you are given contains people who crossed paths, let the seam be
+small and human before it is historical — a name, a room, an errand. The
+grand consequence can wait a sentence.
