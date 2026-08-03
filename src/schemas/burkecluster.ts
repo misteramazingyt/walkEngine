@@ -186,10 +186,10 @@ export const interpretationSchema = z.object({
         subject: subjectSchema.nullish().default(null),
         scores: clusterScoresSchema,
         subjectScores: subjectScoresSchema.nullish().default(null),
-        whyThisSubjectOrganizesTheCluster: z
-          .string()
-          .nullish()
-          .transform((v) => v ?? ""),
+        // No .transform() here: the provider renders this schema to JSON
+        // Schema for the model, and a transform cannot be represented in
+        // one. Coercion to a string happens at the oracle boundary.
+        whyThisSubjectOrganizesTheCluster: z.string().nullish().default(""),
         rejectionReason: z.string().nullish().default(null),
       }),
     )

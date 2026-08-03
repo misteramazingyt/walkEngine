@@ -251,7 +251,7 @@ export class LlmBurkeClusterOracle implements BurkeClusterOracle {
       total: 0,
       subjectScores: entry.subjectScores,
       subjectTotal: 0,
-      whyThisSubjectOrganizesTheCluster: entry.whyThisSubjectOrganizesTheCluster,
+      whyThisSubjectOrganizesTheCluster: entry.whyThisSubjectOrganizesTheCluster ?? "",
       rejectionReason: entry.rejectionReason,
     }));
   }
