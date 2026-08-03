@@ -204,6 +204,11 @@ model BurkeClusterRun {
   randomSeed      String
   state           String // JSON: BurkeClusterState (seed, attention, subjects, cycles)
   narrative       String? // JSON: BurkeClusterNarrative
+  // Braided composition over this run's subjects: the accepted chain plus
+  // the runners-up it discarded, rewoven so a dozen subjects stay live while
+  // the topic moves among them. Null until composed; composing again
+  // replaces it, since the plan is deterministic from the state above.
+  braid           String? // JSON: { plan diagnostics, BraidComposition }
   transitionTable String   @default("[]") // JSON: the required transition table
   graphNodes      String   @default("[]") // JSON: ArchiveNode[] of the final cycle
   graphEdges      String   @default("[]") // JSON: ArchiveEdge[] of the final cycle

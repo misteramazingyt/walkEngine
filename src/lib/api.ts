@@ -9,6 +9,7 @@ import type {
   StartWalkInput,
 } from "@/server/walks";
 import type { WalkConfiguration } from "@/schemas/walk-configuration";
+import type { BraidDto } from "@/server/braid";
 
 export interface WalkDto {
   sourceNodes: SourceNodeDto[];
@@ -112,4 +113,20 @@ export async function updateProjectRequest(
   if (!response.ok) throw new Error(await parseError(response));
   const body = (await response.json()) as { project: WalkProjectDto };
   return body.project;
+}
+
+export async function fetchBraid(projectId: string): Promise<BraidDto | null> {
+  const response = await fetch(`/api/projects/${projectId}/braid`);
+  if (!response.ok) throw new Error(await parseError(response));
+  return ((await response.json()) as { braid: BraidDto | null }).braid;
+}
+
+export async function buildBraidRequest(projectId: string): Promise<BraidDto> {
+  const response = await fetch(`/api/projects/${projectId}/braid`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!response.ok) throw new Error(await parseError(response));
+  return ((await response.json()) as { braid: BraidDto }).braid;
 }

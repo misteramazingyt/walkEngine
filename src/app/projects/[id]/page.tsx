@@ -4,7 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import {
+  buildBraidRequest,
   chooseCandidateWalkRequest,
+  fetchBraid,
   fetchProject,
   fetchWalk,
   startWalkRequest,
@@ -17,6 +19,7 @@ import { FlowchartCanvas } from "@/components/flowchart/FlowchartCanvas";
 import { DraftPanel } from "@/components/draft/DraftPanel";
 import { AnamnesisPanel } from "@/components/draft/AnamnesisPanel";
 import { BurkeClusterPanel } from "@/components/draft/BurkeClusterPanel";
+import { BraidPanel } from "@/components/draft/BraidPanel";
 import { InspectorPanel } from "@/components/inspector/InspectorPanel";
 import { Panel, TitleBar } from "@/components/ui/retro";
 
@@ -48,6 +51,20 @@ export default function ProjectWorkbenchPage({
 
   // null = no local edits; the persisted configuration is authoritative.
   const [draftConfig, setDraftConfig] = useState<WalkConfiguration | null>(null);
+
+  // The right panel shows the walk's own apparatus, or the braided
+  // recomposition of it. They are two readings of one run, not two runs.
+  const [rightView, setRightView] = useState<"walk" | "braid">("walk");
+
+  const braidQuery = useQuery({
+    queryKey: ["braid", id],
+    queryFn: () => fetchBraid(id),
+  });
+
+  const braidMutation = useMutation({
+    mutationFn: () => buildBraidRequest(id),
+    onSuccess: (braid) => queryClient.setQueryData(["braid", id], braid),
+  });
 
   const saveMutation = useMutation({
     mutationFn: (configuration: WalkConfiguration) =>
@@ -222,7 +239,9 @@ export default function ProjectWorkbenchPage({
         <Panel
           title={
             walkQuery.data?.clusterRun
-              ? "BurkeCluster — subjects, clusters, trace"
+              ? rightView === "braid"
+                ? "Braid — subjects overlapped, topic moving"
+                : "BurkeCluster — subjects, clusters, trace"
               : walkQuery.data?.anamnesisRun
                 ? "Anamnesis — the sentence and what it owes"
                 : walkQuery.data?.burkeRun
@@ -232,7 +251,41 @@ export default function ProjectWorkbenchPage({
           className="h-[50vh] min-w-0 shrink-0 lg:h-auto lg:min-h-0 lg:flex-[2] lg:shrink"
         >
           {walkQuery.data?.clusterRun ? (
-            <BurkeClusterPanel run={walkQuery.data.clusterRun} />
+            <div className="flex h-full min-h-0 flex-col">
+              <div className="flex gap-1 px-3 pt-2">
+                {(["walk", "braid"] as const).map((view) => (
+                  <button
+                    key={view}
+                    className="retro-button text-[11px]"
+                    aria-pressed={rightView === view}
+                    style={
+                      rightView === view
+                        ? { background: "var(--color-titlebar)", color: "var(--color-titlebar-text)" }
+                        : undefined
+                    }
+                    onClick={() => setRightView(view)}
+                  >
+                    {view === "walk" ? "As walked" : "As braided"}
+                  </button>
+                ))}
+              </div>
+              <div className="min-h-0 flex-1">
+                {rightView === "braid" ? (
+                  <BraidPanel
+                    braid={braidQuery.data ?? null}
+                    onCompose={() => braidMutation.mutate()}
+                    busy={braidMutation.isPending}
+                    error={
+                      braidMutation.error instanceof Error
+                        ? braidMutation.error.message
+                        : null
+                    }
+                  />
+                ) : (
+                  <BurkeClusterPanel run={walkQuery.data.clusterRun} />
+                )}
+              </div>
+            </div>
           ) : walkQuery.data?.anamnesisRun ? (
             <AnamnesisPanel run={walkQuery.data.anamnesisRun} />
           ) : (

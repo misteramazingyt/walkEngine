@@ -1,6 +1,9 @@
 import type { BurkeOracle } from "@/domain/burke/types";
 import type { AnamnesisOracle } from "@/domain/anamnesis/types";
 import type { StartOracle } from "@/domain/walk/types";
+import type { BraidOracle } from "@/domain/braid/types";
+import { LlmBraidOracle } from "@/integrations/llm/braid-oracle";
+import { FixtureBraidOracle } from "@/integrations/llm/fixture-braid-oracle";
 import { GeminiProvider } from "@/integrations/gemini/provider";
 import { LlmStartOracle } from "@/integrations/llm/start-oracle";
 import { FixtureStartOracle } from "@/integrations/llm/fixture-start-oracle";
@@ -28,6 +31,11 @@ export function createBurkeOracle(): BurkeOracle {
 export function createAnamnesisOracle(): AnamnesisOracle {
   if (fixturesEnabled()) return new FixtureAnamnesisOracle();
   return new LlmAnamnesisOracle(new GeminiProvider());
+}
+
+export function createBraidOracle(): BraidOracle {
+  if (fixturesEnabled()) return new FixtureBraidOracle();
+  return new LlmBraidOracle(new GeminiProvider());
 }
 
 // Every walk mode can be told to let the model choose its entry article, so
