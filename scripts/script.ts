@@ -111,11 +111,60 @@ async function main(): Promise<void> {
   for (const id of order) {
     const source = plan.steps.filter((st) => st.subjectId === id);
     const want = allocation.get(id) ?? 1;
-    for (let k = 0; k < want; k++) {
-      reshaped.push({ ...source[Math.min(k, source.length - 1)] });
+    if (want <= source.length) {
+      for (let k = 0; k < want; k++) reshaped.push({ ...source[k] });
+      continue;
     }
+    // A dwell of N beats needs N distinct episodes. Duplicating the step
+    // gave the second beat identical material to the first, and a writer
+    // with nothing new to say forecasts. Mine the full article for phases,
+    // each with its own particular and the problem it caused in turn.
+    const base = source[0];
+    const subj = verified.subjects.get(id);
+    let phases: Awaited<ReturnType<typeof routeOracle.expandDwell>> = [];
+    if (subj && subj.extract.trim().length > 400) {
+      try {
+        phases = await routeOracle.expandDwell({
+          title: subj.title,
+          extract: subj.extract,
+          baseStep: base,
+          phases: want,
+          objectOfInquiry: plan.objectOfInquiry,
+          seed: parsed.seedText,
+        });
+        console.log(`  ${subj.title}: dwell expanded to ${phases.length} phases`);
+      } catch {
+        phases = [];
+      }
+    }
+    if (phases.length === 0) {
+      for (const st of source) reshaped.push({ ...st });
+      continue;
+    }
+    phases.forEach((ph, k) => {
+      reshaped.push({
+        ...base,
+        beatKind: k === 0 ? base.beatKind : "advance",
+        scene: ph.scene,
+        particular: ph.particular,
+        carrier: k === 0 ? base.carrier : ph.carrier,
+        arisesFrom: k === 0 ? base.arisesFrom : ph.carrier,
+        whatHappenedInstead: ph.problemCaused,
+        determination: ph.determination,
+        revises: k === 0 ? base.revises : [],
+        entry: k === 0 ? base.entry : "",
+      });
+    });
   }
   plan.steps = reshaped.slice(0, Math.max(4, plan.steps.length));
+
+  // A reckoning three paragraphs into two millennia is absurd; recapitulate
+  // only once the ledger has something on it, and never twice in a row.
+  plan.steps.forEach((st, i) => {
+    if (st.beatKind === "recapitulate" && i < plan.steps.length * 0.6) {
+      st.beatKind = "advance";
+    }
+  });
 
   rule("Beats earned");
   for (const id of order) {

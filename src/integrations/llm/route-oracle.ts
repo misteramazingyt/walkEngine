@@ -1,5 +1,5 @@
 import type { RouteOracle, ScriptOracle } from "@/domain/route/types";
-import { beatSchema, routePlanSchema } from "@/schemas/route";
+import { beatSchema, dwellExpansionSchema, routePlanSchema } from "@/schemas/route";
 import { z } from "zod";
 import { loadPrompt } from "./prompt-files";
 import type { LanguageModelProvider } from "./provider";
@@ -119,6 +119,34 @@ export class LlmRouteOracle implements RouteOracle {
       temperature: 0.9,
       maxTokens: 40000,
     });
+  }
+
+  async expandDwell(input: {
+    title: string;
+    extract: string;
+    baseStep: { arisesFrom: string; carrier: string; determination: string };
+    phases: number;
+    objectOfInquiry: string;
+    seed: string;
+  }) {
+    const result = await this.provider.generateStructured({
+      promptId: "expand-dwell.v1",
+      system: loadPrompt("expand-dwell.v1"),
+      user: [
+        `SUBJECT: ${input.title}`,
+        `PHASES REQUESTED: ${input.phases}`,
+        `OBJECT OF INQUIRY: ${input.objectOfInquiry}`,
+        `THE ROUTE IS BUILDING TOWARD: "${input.seed}"`,
+        `THE SEAM THAT BROUGHT US HERE (first phase begins from this): ${input.baseStep.carrier}`,
+        `WHAT THE STAY MUST ESTABLISH OVERALL: ${input.baseStep.determination}`,
+        `THE ARTICLE:
+${input.extract.slice(0, 14000)}`,
+      ].join("\n\n"),
+      schema: dwellExpansionSchema,
+      temperature: 0.6,
+      maxTokens: 16000,
+    });
+    return result.phases;
   }
 
   async repair(input: { failures: Array<{ step: { pageTitle: string; bearsOnSeed: string }; candidates: string[] }> }) {

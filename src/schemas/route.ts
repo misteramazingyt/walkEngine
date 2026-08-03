@@ -192,3 +192,17 @@ export const beatSchema = z.object({
   /** Where the fork appears in the paragraph, quoted from it. */
   forkSentence: z.string().default(""),
 });
+
+export const dwellPhaseSchema = z.object({
+  scene: z.string().min(1),
+  particular: z.string().min(1),
+  /** What moved the subject from the last phase into this one. */
+  carrier: z.string().min(1),
+  /** The difficulty this phase's answer created, and for whom. */
+  problemCaused: z.string().min(1),
+  determination: z.string().min(1),
+});
+
+export const dwellExpansionSchema = z.object({
+  phases: z.array(dwellPhaseSchema).min(1).max(6),
+});

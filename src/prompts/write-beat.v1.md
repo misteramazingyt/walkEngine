@@ -68,9 +68,14 @@ open: name what was established, and show this beat qualifying, complicating
 or overturning it. Not "as we saw earlier" — actually reopen it. The reader
 should feel a thing they were told settling into a different shape.
 
-If this beat is a RECAPITULATION, its work is different: hold the
-determinations so far together and say what the object of inquiry now looks
-like. No new subject, no new material. A rest and a reckoning.
+If this beat is a RECAPITULATION, hold what has accumulated together — but
+do it through THINGS, never through abstractions. Return to an image or an
+object from an earlier beat and show it changed by what has happened since:
+the cave, now with a book in it; the whispered list, now written and priced.
+A recapitulation written as summary — "the self was transformed from X into
+Y" — is the worst sentence this piece can contain: it spends in one clause
+what ten beats were supposed to earn, and it cheapens words like
+"transformed" that the ending will need at full price.
 
 If this beat is an INTERVENTION, turn what has accumulated on the present
 argument you are given. Use the determinations as leverage, not as
@@ -306,3 +311,33 @@ name him at all and describe the type instead.
 The same fault: "authors like Rousseau", "figures such as Luther", "thinkers
 including Wittgenstein". Choose. Either this person did this thing on this
 day, or you are talking about a category and should say so plainly.
+
+
+---
+
+# Carried-subject seams continue mid-thought
+
+When your bridge kind is `carried_subject`, this beat is the SAME subject
+continuing. Its first words must continue the subject's own action — the
+next thing that happened — as though the paragraph break were only a breath.
+
+Never open one with a stocktake or a forecast: "However, the next great
+revolution would...", "This shift intensified...", "But change was coming."
+Those sentences advance nothing; they are throat-clearing between facts. Go
+straight to the next event.
+
+# No backstory without a particular
+
+If you invoke a prior state as contrast — "earlier public penance", "the old
+way of doing things" — it must arrive with the same specificity as
+everything else: what it was, where, roughly when, and one concrete feature
+(public penance could be undertaken once in a lifetime, so sinners deferred
+it to their deathbeds). A contrast state named without a particular reads as
+invented, even when it is true. If you cannot ground it, cut it.
+
+# Spend big words at full price
+
+"Transformation", "revolution", "profound shift" — reserve these. If they
+appear at all, they appear once, late, when the accumulated particulars have
+already done the arguing. A transformation announced in beat three of ten is
+a promissory note the piece has not yet earned.

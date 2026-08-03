@@ -53,7 +53,30 @@ export interface ScriptOracle {
   }): Promise<{ prose: string; forkSentence: string }>;
 }
 
+export interface DwellPhase {
+  scene: string;
+  particular: string;
+  carrier: string;
+  problemCaused: string;
+  determination: string;
+}
+
 export interface RouteOracle {
+  /**
+   * A subject that earned several beats needs several distinct episodes,
+   * not one episode repeated. Duplicating the step gave the writer nothing
+   * new to say, and a writer with nothing new to say forecasts: "the next
+   * great revolution would decentralize this authority."
+   */
+  expandDwell(input: {
+    title: string;
+    extract: string;
+    baseStep: RouteStep;
+    phases: number;
+    objectOfInquiry: string;
+    seed: string;
+  }): Promise<DwellPhase[]>;
+
   plan(input: {
     seed: string;
     attention: string;
