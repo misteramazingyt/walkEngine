@@ -81,7 +81,12 @@ export interface BurkeClusterEngineConfig {
   maxModelCalls: number;
 }
 
-const CLUSTER_SHORTLIST = 5;
+// Three, not five. Each interpretation carries a subject plus twenty
+// cluster scores and sixteen subject scores, and five of them exceeded even
+// a 32000-token ceiling once reasoning tokens are drawn from the same
+// budget. Raising the ceiling again treats the symptom; the call was simply
+// asking for too much at once, which is what its own error said.
+const CLUSTER_SHORTLIST = 3;
 const SUBJECT_ATTEMPTS = 3;
 const LOW_BEARING_THRESHOLD = 0.35;
 // Below this a pivot is following the previous account's scenery. Not
