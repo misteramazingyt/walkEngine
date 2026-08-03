@@ -53,3 +53,6 @@ dev.db-journal
 # findings written from it are committed, the material itself is not.
 /tools/connections-corpus/corpus/
 /tools/connections-corpus/**/__pycache__/
+
+# Generated compositions: regenerable, and large.
+/drafts/
