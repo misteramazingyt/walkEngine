@@ -341,3 +341,18 @@ invented, even when it is true. If you cannot ground it, cut it.
 appear at all, they appear once, late, when the accumulated particulars have
 already done the arguing. A transformation announced in beat three of ten is
 a promissory note the piece has not yet earned.
+---
+
+# When the subject changes, the first sentence is the carrier happening
+
+On a topic-change seam your ENTRY is a verified event: a person doing
+something, dated, with evidence behind it. The beat's first sentence
+narrates that event. Not what the event meant, not what era it belonged to —
+the event, happening, with its agent's name in the sentence.
+
+Wrong: "This disciplined self took on new dimensions with the formalization
+of a widespread practice." Right: the man, the journey, the document, the
+decree — whichever the entry gives you — doing what it did.
+
+If the entry is empty because the seam is a hard cut, begin the new subject
+cleanly on its own scene. Never bridge a cut with a concept.

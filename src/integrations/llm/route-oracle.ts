@@ -1,5 +1,5 @@
 import type { RouteOracle, ScriptOracle } from "@/domain/route/types";
-import { beatSchema, dwellExpansionSchema, routePlanSchema } from "@/schemas/route";
+import { beatSchema, carrierVerdictSchema, dwellExpansionSchema, routePlanSchema } from "@/schemas/route";
 import { z } from "zod";
 import { loadPrompt } from "./prompt-files";
 import type { LanguageModelProvider } from "./provider";
@@ -60,7 +60,9 @@ ${input.summary}`,
         `EVIDENCE FOR IT: ${input.step.carrierEvidence}`,
         `PRESSURE INHERITED: ${input.step.inheritedPressure}`,
         `PRESSURE TRANSFORMED INTO: ${input.step.transformedPressure}`,
-        `THE FORK — carry this in the paragraph: ${input.step.forkAlternative}. Had it gone that way: ${input.step.forkWhatWouldDiffer}`,
+        input.step.forkAlternative.trim().length > 0
+          ? `THE FORK — carry this in the paragraph: ${input.step.forkAlternative}. Had it gone that way: ${input.step.forkWhatWouldDiffer}`
+          : "NO FORK for this beat — its subject's fork was carried on arrival.",
         `SOMEBODY WANTED: ${input.step.someoneWanted}`,
         `THEY TRIED: ${input.step.whatTheyTried}`,
         `WHAT HAPPENED INSTEAD: ${input.step.whatHappenedInstead}`,
@@ -118,6 +120,33 @@ export class LlmRouteOracle implements RouteOracle {
       schema: routePlanSchema,
       temperature: 0.9,
       maxTokens: 40000,
+    });
+  }
+
+  async verifyCarrier(input: {
+    prevTitle: string;
+    prevExtract: string;
+    nextTitle: string;
+    nextExtract: string;
+    claimed: string;
+    claimedEvidence: string;
+  }) {
+    return this.provider.generateStructured({
+      promptId: "verify-carrier.v1",
+      system: loadPrompt("verify-carrier.v1"),
+      user: [
+        `FROM: ${input.prevTitle}`,
+        `TO: ${input.nextTitle}`,
+        `CLAIMED CARRIER: ${input.claimed}`,
+        `CLAIMED EVIDENCE: ${input.claimedEvidence}`,
+        `ARTICLE ON ${input.prevTitle}:
+${input.prevExtract.slice(0, 9000)}`,
+        `ARTICLE ON ${input.nextTitle}:
+${input.nextExtract.slice(0, 9000)}`,
+      ].join("\n\n"),
+      schema: carrierVerdictSchema,
+      temperature: 0.2,
+      maxTokens: 8000,
     });
   }
 

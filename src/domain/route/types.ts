@@ -63,6 +63,22 @@ export interface DwellPhase {
 
 export interface RouteOracle {
   /**
+   * Check a seam's carrier against both full articles, replacing a trend
+   * dressed as an event with a real one, or reporting honestly that the
+   * archive shows no passage — in which case the seam cuts cleanly rather
+   * than faking a link. Prompts asked for real carriers four times and got
+   * "the growing complexity of society"; only a check makes it true.
+   */
+  verifyCarrier(input: {
+    prevTitle: string;
+    prevExtract: string;
+    nextTitle: string;
+    nextExtract: string;
+    claimed: string;
+    claimedEvidence: string;
+  }): Promise<{ found: boolean; carrier: string; evidence: string }>;
+
+  /**
    * A subject that earned several beats needs several distinct episodes,
    * not one episode repeated. Duplicating the step gave the writer nothing
    * new to say, and a writer with nothing new to say forecasts: "the next

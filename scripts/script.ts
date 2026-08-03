@@ -153,6 +153,11 @@ async function main(): Promise<void> {
         determination: ph.determination,
         revises: k === 0 ? base.revises : [],
         entry: k === 0 ? base.entry : "",
+        // The base fork was copied into every phase and came out verbatim
+        // twice in the prose. A fork belongs to the subject's arrival, not
+        // to each of its episodes.
+        forkAlternative: k === 0 ? base.forkAlternative : "",
+        forkWhatWouldDiffer: k === 0 ? base.forkWhatWouldDiffer : "",
       });
     });
   }
@@ -178,6 +183,49 @@ async function main(): Promise<void> {
   }
 
   assignBridgeKinds(plan);
+
+  // Verify every topic-change seam's carrier against both full articles.
+  // Four prompts asked for real carriers and got "the growing complexity of
+  // society presented a problem"; only a check makes the demand real. A
+  // verified carrier becomes the beat's ENTRY — the measured position of a
+  // bridge — and a seam with no passage in the archive cuts cleanly.
+  rule("Verifying carriers");
+  for (let i = 1; i < plan.steps.length; i++) {
+    const prev = plan.steps[i - 1];
+    const st = plan.steps[i];
+    if (st.subjectId === prev.subjectId) continue;
+    const a = verified.subjects.get(prev.subjectId);
+    const b = verified.subjects.get(st.subjectId);
+    if (!a || !b) continue;
+    try {
+      const verdict = await routeOracle.verifyCarrier({
+        prevTitle: a.title,
+        prevExtract: a.extract,
+        nextTitle: b.title,
+        nextExtract: b.extract,
+        claimed: st.carrier,
+        claimedEvidence: st.carrierEvidence,
+      });
+      if (verdict.found && verdict.carrier.trim().length > 0) {
+        const replaced = verdict.carrier !== st.carrier;
+        st.carrier = verdict.carrier;
+        st.carrierEvidence = verdict.evidence;
+        st.entry = verdict.carrier;
+        console.log(
+          `  ${a.title} → ${b.title}: ${replaced ? "replaced" : "confirmed"}`,
+        );
+      } else {
+        st.bridgeKind = "hard_cut";
+        st.carrier = "";
+        st.carrierEvidence = "the articles show no passage between these subjects";
+        st.entry = "";
+        console.log(`  ${a.title} → ${b.title}: NO PASSAGE — cutting cleanly`);
+      }
+    } catch {
+      console.log(`  ${a.title} → ${b.title}: verification failed, kept as planned`);
+    }
+  }
+
   const braid = computeLiveness(plan, { liveTarget: 12 });
 
   rule("Object of inquiry");

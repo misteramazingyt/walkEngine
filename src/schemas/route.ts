@@ -206,3 +206,11 @@ export const dwellPhaseSchema = z.object({
 export const dwellExpansionSchema = z.object({
   phases: z.array(dwellPhaseSchema).min(1).max(6),
 });
+
+export const carrierVerdictSchema = z.object({
+  found: z.boolean(),
+  /** The verified or replaced carrier: an event with an agent and a date. */
+  carrier: z.string().default(""),
+  /** The supporting passage, quoted or closely paraphrased. */
+  evidence: z.string().default(""),
+});
