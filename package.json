@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "braid": "tsx scripts/braid.ts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.9.1",
@@ -38,6 +39,7 @@
     "eslint-config-next": "16.2.12",
     "prisma": "^7.9.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.5",
     "typescript": "^5",
     "vitest": "^4.1.10"
   }

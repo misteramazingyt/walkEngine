@@ -66,14 +66,30 @@ function pageSubjects(source: BraidSource): PageSubject[] {
   const out: PageSubject[] = [];
 
   ordered.forEach((cluster, arcIndex) => {
+    // Ordered by personalized PageRank relative to the region's origin, so
+    // the pages nearest the walk's own concern lead. Taking the packet's
+    // representative list in storage order instead put whatever the sampler
+    // happened to reach first at the front, which is how a route through a
+    // regiment's context can read as a march away from the seed.
+    const ranked = [...(cluster.packet?.topByRelevance ?? [])]
+      .sort((a, b) => b.ppr - a.ppr)
+      .map((p) => p.title);
     const titles = [
       ...(cluster.subject.constitutivePages ?? []),
+      ...ranked,
       ...(cluster.packet?.representativeTitles ?? []),
     ];
     for (const title of titles) {
       const key = title.toLowerCase();
       if (seen.has(key)) continue;
-      const page = source.pages.get(title);
+      const fromPacket = cluster.packet?.topByRelevance?.find(
+        (p) => p.title === title,
+      );
+      const page =
+        source.pages.get(title) ??
+        (fromPacket
+          ? { title, summary: fromPacket.summary }
+          : undefined);
       if (!page || page.summary.trim().length < 40) continue;
       seen.add(key);
       out.push({
