@@ -288,3 +288,41 @@ selected because they bear on the destination are the SHORTEST in Burke —
 ones. He names what the ending needs and moves past it. Do not linger on a
 subject merely because it matters to your thesis; linger where there is
 incident and causal work.
+
+---
+
+# Every seam names a carrier
+
+This is the point of the whole exercise. Drawing a distant connection is
+easy and worthless; the work is NARRATING it. A route that says one thing
+was so and later another thing was so has connected nothing — it has put two
+facts next to each other and left the reader to invent the passage between.
+
+So for every step, name the `carrier`: the specific thing that got from the
+previous subject to this one.
+
+  a person who travelled          Cassian, carrying desert practice to
+                                  Marseille in 415
+  a text that was copied          his Institutes, read in Latin houses that
+                                  had never seen a desert
+  a rule written down             Irish penitentials turning that reading
+                                  into repeatable private penance
+  a shortage that forced a change, a court that ruled, a price that moved,
+  a war that took the men away, a machine somebody bought second hand
+
+A carrier is a thing that happened, with an agent, and where possible a date
+and a place. These are NOT carriers, and each is a way of pretending:
+
+  "the idea spread"          — carried by whom, in what?
+  "attitudes shifted"        — nobody's attitude shifts on its own
+  "this led to"              — that is the claim, not the mechanism
+  "the practice moved into an institutional setting" — moved how?
+
+`carrierEvidence` says what supports it, honestly. If the archive does not
+show a carrier, say so in that field rather than inventing one — and then
+the two subjects should probably not be adjacent. A seam you cannot carry is
+a seam you have not earned.
+
+`inheritedPressure` and `transformedPressure`: what the previous subject was
+struggling with, and what that struggle became once it arrived here. A
+pressure that arrives unchanged has not moved anywhere.

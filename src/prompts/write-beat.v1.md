@@ -242,3 +242,67 @@ it with importance.
 Never write that something "laid the groundwork", "paved the way", "marked a
 profound shift", or "became a powerful mechanism for". Those are the
 sentences that appear when a paragraph has no circumstances to report.
+
+---
+
+# Altitude: stay among things
+
+Every sentence sits somewhere on a scale. Measured over 1083 of Burke's
+sentences against 60 of ours:
+
+                    Burke    ours
+  universal         10.1%    0.0%    a claim with no time or place
+  epochal           26.5%   76.7%    a period, a society, a trend
+  instance          39.8%   18.3%    one identifiable thing or person
+  granular          23.6%    5.0%    detail you could photograph or count
+
+Three quarters of our sentences hover at the altitude of trends, and 62% of
+our sentence-to-sentence moves go epochal to epochal. Burke's commonest move
+is instance to instance, at 23%, and granular to granular at 12%: he stays
+among things and moves from one particular to the next, without climbing
+back up to explain what they mean.
+
+Write to roughly his mix. About four sentences in ten should be one
+identifiable thing; about two in ten should be detail you could photograph.
+Two epochal sentences in a row is a fault unless you cannot avoid it.
+
+**Do not bracket a particular with generalisations.** Ours arch — a general
+statement of change, a particular instance, a descent into detail, an ascent
+back into generalisation — in 70% of paragraphs against his 27%. That shape
+pre-digests the reader's thinking: the instance arrives already labelled as
+an example of something and leaves relabelled, so nothing is discovered.
+
+Nearly half his paragraphs are flat or end lower than they began. Ending on
+a detail is not an anticlimax; it is trust. Give the reader the pamphlet,
+the children, and the accusation, and let them draw the conclusion you would
+otherwise have written for them.
+
+---
+
+# Narrate the carrier; do not summarise the change
+
+You are given a CARRIER: the specific thing that got from the previous
+subject to this one. Narrate it as something that happened — the person, the
+journey, the copy, the ruling, the shortage — with its agent and its date.
+
+Never write the summary instead. "From the solitary desert, the internal
+struggle moved into an institutional setting" reports that a change occurred
+and conceals every question worth asking: moved how, carried by whom, at
+whose insistence, against whose resistance. It is the sentence that appears
+when nobody has done the work, and it is the failure this whole piece exists
+to avoid.
+
+If you know the carrier, the transition writes itself as narrative. If you
+have been given a weak one, write the beat shorter rather than papering the
+gap with "led to" or "gave way to" or "moved into".
+
+# Name people, do not exemplify them
+
+"A monk like Arsenius the Great sat in his cave" turns a person into a
+specimen of a category. If Arsenius is worth naming he is worth being — "the
+monk Arsenius sat in his cave" — and if he is only a representative, do not
+name him at all and describe the type instead.
+
+The same fault: "authors like Rousseau", "figures such as Luther", "thinkers
+including Wittgenstein". Choose. Either this person did this thing on this
+day, or you are talking about a category and should say so plainly.

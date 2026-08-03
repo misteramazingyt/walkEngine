@@ -72,6 +72,29 @@ export const routeStepSchema = z.object({
   edgeType: z.enum(EDGE_TYPES).catch("condition_of_possibility"),
   /** How this step arises from the previous one, in its own terms. */
   arisesFrom: z.string().min(1),
+
+  // --- the carrier ----------------------------------------------------
+  // CLAUDE.md requires every narrative edge to name a carrier. BurkeCluster
+  // enforced it; the planning path kept the edge types and dropped the
+  // carrier, so a seam could only announce that a change had occurred.
+  // "The internal struggle moved into an institutional setting" is what a
+  // seam says when nothing holds what did the moving.
+
+  /**
+   * The specific thing that got from the previous subject to this one: a
+   * person who travelled, a text that was copied, a rule that was written
+   * down, a shortage that forced a substitute, a court that ruled. Named,
+   * dated where possible. Not a process and not a tendency — "monasticism
+   * spread" is not a carrier; "Cassian carried it to Marseille in 415 and
+   * wrote it down for Latin houses" is.
+   */
+  carrier: z.string().min(1),
+  /** What in the archive supports the carrier, or that nothing does. */
+  carrierEvidence: z.string().min(1),
+  /** What pressure the previous subject was under that this one inherits. */
+  inheritedPressure: z.string().min(1),
+  /** What that pressure became once it arrived here. */
+  transformedPressure: z.string().min(1),
   /**
    * The road not taken. A causal chain asserts necessity; a contingent
    * traversal exhibits the fork and declines to naturalize it.

@@ -78,13 +78,26 @@ export function allocateBeats(
   totalBeats: number,
 ): Map<string, number> {
   const weight = new Map<string, number>();
+  const incidents = plan.cast.map((c) => c.incidents);
+  const spread = Math.max(...incidents) - Math.min(...incidents);
+  const anyProduces = plan.cast.some((c) => c.producesSubjectId.trim().length > 0);
+
   for (const member of plan.cast) {
     const produces = member.producesSubjectId.trim().length > 0;
-    const incident =
-      member.incidents >= 3 ? 2 : member.incidents >= 1 ? 1 : 0;
-    // 1 floor, +2 for producing the next subject, +up to 2 for incident:
-    // a subject with neither is touched once, one with both settles in.
+    const incident = member.incidents >= 3 ? 2 : member.incidents >= 1 ? 1 : 0;
     weight.set(member.id, Math.min(6, 1 + (produces ? 2 : 0) + incident));
+  }
+
+  // The planner keeps returning a constant for incidents and, since the
+  // consequence gate, sometimes no productions at all. Both leave every
+  // weight identical, and identical weights give every subject one beat —
+  // which is the flat sequence the cast was introduced to fix. When the
+  // declared signal carries no information, fall back to the corpus shape
+  // instead: a third of subjects taking two thirds of the paragraphs.
+  if (spread === 0 && !anyProduces) {
+    plan.cast.forEach((member, index) => {
+      weight.set(member.id, index % 3 === 0 ? 4 : 1);
+    });
   }
 
   // The closing sixth accelerates. Measured: dwell runs average 3.80
