@@ -13,7 +13,8 @@
     "test": "vitest run",
     "braid": "tsx scripts/braid.ts",
     "walk": "tsx scripts/walk.ts",
-    "script": "tsx scripts/script.ts"
+    "script": "tsx scripts/script.ts",
+    "edit": "tsx scripts/edit.ts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.9.1",
