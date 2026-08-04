@@ -267,3 +267,19 @@ export const beatCheckSchema = z.object({
   hasAside: z.boolean(),
   opensConcrete: z.boolean(),
 });
+
+export const beatVisualsSchema = z.object({
+  visuals: z
+    .array(
+      z.object({
+        kind: z.enum(["concrete", "abstract"]),
+        query: z.string().min(1),
+        why: z.string().min(1),
+        /** For abstract only: which condition licenses it (1 or 2). */
+        licence: z.string().default(""),
+        spectation: z.string().default(""),
+      }),
+    )
+    .max(3)
+    .default([]),
+});

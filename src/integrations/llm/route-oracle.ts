@@ -1,5 +1,5 @@
 import type { RouteOracle, ScriptOracle } from "@/domain/route/types";
-import { beatSchema, carrierVerdictSchema, dwellExpansionSchema, routePlanSchema, specifyVerdictSchema, beatCheckSchema } from "@/schemas/route";
+import { beatSchema, carrierVerdictSchema, dwellExpansionSchema, routePlanSchema, specifyVerdictSchema, beatCheckSchema, beatVisualsSchema } from "@/schemas/route";
 import { z } from "zod";
 import { loadPrompt } from "./prompt-files";
 import type { LanguageModelProvider } from "./provider";
@@ -34,6 +34,9 @@ export class LlmScriptOracle implements ScriptOracle {
           card.rest
             ? "  · this beat is a REST: no turn, no reversal, no surprise. Report cleanly; the rests are what make the turns land"
             : "",
+          card.gestureInvited
+            ? "  · a quick fourth-wall gesture toward the contemporary internet is INVITED here — one cheeky half-clause, landed and left, never argued. Only if one genuinely offers itself; skip freely"
+            : "",
           `  · hard cap ${card.wordCap} words`,
         ]
           .filter(Boolean)
@@ -46,7 +49,12 @@ export class LlmScriptOracle implements ScriptOracle {
         : "";
     return this.provider.generateStructured({
       promptId: "write-beat.v1",
-      system: loadPrompt("write-beat.v1") + "\n\n" + loadPrompt("voice.v1"),
+      system:
+        loadPrompt("write-beat.v1") +
+        "\n\n" +
+        loadPrompt("voice.v1") +
+        "\n\n" +
+        loadPrompt("ethos.v1"),
       user: [
         cardLines,
         violationLines,
@@ -133,7 +141,8 @@ export class LlmRouteOracle implements RouteOracle {
         : "";
     return this.provider.generateStructured({
       promptId: "plan-route.v1",
-      system: loadPrompt("plan-route.v1"),
+      system:
+        loadPrompt("plan-route.v1") + "\n\n" + loadPrompt("ethos.v1"),
       user: [
         `PROPOSITION: "${input.seed}"`,
         input.attention.trim() ? `ATTENTION:\n${input.attention}` : "",
@@ -153,6 +162,17 @@ export class LlmRouteOracle implements RouteOracle {
       schema: routePlanSchema,
       temperature: 0.9,
       maxTokens: 60000,
+    });
+  }
+
+  async proposeVisuals(input: { title: string; prose: string }) {
+    return this.provider.generateStructured({
+      promptId: "visual-beat.v1",
+      system: loadPrompt("visual-beat.v1") + "\n\n" + loadPrompt("ethos.v1"),
+      user: `SUBJECT: ${input.title}\n\nTHE BEAT:\n${input.prose}`,
+      schema: beatVisualsSchema,
+      temperature: 0.4,
+      maxTokens: 6000,
     });
   }
 
@@ -195,7 +215,8 @@ export class LlmRouteOracle implements RouteOracle {
   }) {
     return this.provider.generateStructured({
       promptId: "specify-subject.v1",
-      system: loadPrompt("specify-subject.v1"),
+      system:
+        loadPrompt("specify-subject.v1") + "\n\n" + loadPrompt("ethos.v1"),
       user: [
         `SUBJECT (a survey to descend from): ${input.title}`,
         `ITS ROLE IN THE ROUTE: ${input.role}`,

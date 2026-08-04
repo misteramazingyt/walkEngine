@@ -150,6 +150,13 @@ export interface PerformanceCard {
   aside: boolean;
   /** A rest reports cleanly: no turn, no reversal. 45% of Burke's paragraphs. */
   rest: boolean;
+  /**
+   * An INVITATION, never a requirement: a quick fourth-wall gesture toward
+   * the contemporary internet may land here if one genuinely offers itself.
+   * Dealt to about two beats a piece; the check pass does not enforce it,
+   * because serendipity ordered on demand is neither.
+   */
+  gestureInvited: boolean;
   /** Hard cap; the check pass rejects a beat that blows it. */
   wordCap: number;
 }
@@ -175,6 +182,7 @@ export function dealPerformanceCards(plan: RoutePlan): PerformanceCard[] {
           : "none";
     return {
       voice,
+      gestureInvited: i === 2 || i === plan.steps.length - 3,
       aside: i % 5 === 2 || i % 5 === 4,
       rest: !isOpen && !isClose && i % 9 in { 0: 1, 4: 1, 6: 1, 8: 1 },
       wordCap: Math.round(step.words * 1.2),

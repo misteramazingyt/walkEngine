@@ -43,6 +43,7 @@ export interface ScriptOracle {
       voice: "address" | "question" | "none";
       aside: boolean;
       rest: boolean;
+      gestureInvited?: boolean;
       wordCap: number;
     };
     /** Violations from the check pass, when this is a re-roll. */
