@@ -235,6 +235,24 @@ export class WikipediaGateway implements WalkGateway {
     return extract.slice(0, maxChars);
   }
 
+  /**
+   * How many Wikipedias carry this article — the cheapest honest proxy for
+   * fame. Stoicism exists in ~140 languages; a seventh-century penitential
+   * in a handful. Used by the heat dial: high heat forces descent until a
+   * subject's fame falls below the threshold, which is what "prefer
+   * lesser-known subjects" means once it has to be enforced.
+   */
+  async getLanglinkCount(title: string): Promise<number> {
+    const body = (await this.apiGet({
+      action: "query",
+      titles: title,
+      redirects: "1",
+      prop: "langlinks",
+      lllimit: "max",
+    })) as { query?: { pages?: Array<{ langlinks?: Array<unknown> }> } };
+    return body.query?.pages?.[0]?.langlinks?.length ?? 0;
+  }
+
   /** Resolve a start specification to a canonical article title. */
   async resolveStart(start: {
     kind: "TITLE" | "URL" | "TOPIC" | "RANDOM";

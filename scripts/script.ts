@@ -31,6 +31,7 @@ async function main(): Promise<void> {
   let planOnly = false;
   let steps = 0;
   let words = 0;
+  let heat = 0.4;
   let out2 = "";
   let name = "";
   let planFile = "";
@@ -40,6 +41,7 @@ async function main(): Promise<void> {
     if (argv[i] === "--plan-only") planOnly = true;
     else if (argv[i] === "--steps") steps = Number(argv[++i]);
     else if (argv[i] === "--words") words = Number(argv[++i]);
+    else if (argv[i] === "--heat") heat = Math.max(0, Math.min(1, Number(argv[++i])));
     else if (argv[i] === "--out") out2 = argv[++i];
     else if (argv[i] === "--name") name = argv[++i];
     else if (argv[i] === "--brief-file") rest.push(readFileSync(argv[++i], "utf8"));
@@ -157,7 +159,11 @@ async function main(): Promise<void> {
   // each survey to a specific page inside it: the person, the document, the
   // tariff that actually carries the role. Famous pages remain as arcs; the
   // beats live on what the archive holds beneath them.
-  rule("Descending to specifics");
+  // Heat: how obscure a beat's subject must be, enforced by interlanguage
+  // link count. At heat 0 anything under ~120 languages passes; at heat 1
+  // nothing over ~25 does, and descent repeats a level until it gets there.
+  const fameCeiling = Math.round(120 - 95 * heat);
+  rule(`Descending to specifics (heat ${heat.toFixed(2)} → fame ceiling ${fameCeiling})`);
   for (const member of plan.cast) {
     const subj = verified.subjects.get(member.id);
     if (!subj || subj.extract.trim().length < 600) continue;
@@ -165,28 +171,57 @@ async function main(): Promise<void> {
       plan.steps.find((st) => st.subjectId === member.id)?.determination ??
       member.gloss;
     try {
-      const verdictS = await routeOracle.specifySubject({
-        title: subj.title,
-        extract: subj.extract,
-        role,
-        seed: parsed.seedText,
-      });
-      for (const candidate of verdictS.candidates) {
-        if (candidate.toLowerCase() === subj.title.toLowerCase()) continue;
-        const infos = await gateway.getArticleInfos([candidate]);
-        const info = [...infos.values()].find(
-          (x) => !x.missing && !x.isDisambiguation && x.summary.length > 0,
-        );
-        if (!info) continue;
-        const extract = await gateway.getArticleExtract(info.title);
-        if (extract.trim().length < 600) continue;
-        console.log(`  ${subj.title} → ${info.title}`);
-        subj.gloss = `${info.title} — the specific carrier of ${subj.title}: ${verdictS.why}`.slice(0, 300);
-        subj.title = info.title;
-        subj.summary = info.summary;
-        subj.extract = extract;
-        subj.url = info.url;
-        break;
+      for (let level = 0; level < 2; level++) {
+        const fame = await gateway.getLanglinkCount(subj.title);
+        if (level > 0 && fame <= fameCeiling) break;
+        const verdictS = await routeOracle.specifySubject({
+          title: subj.title,
+          extract: subj.extract,
+          role,
+          seed: parsed.seedText,
+        });
+        // At high heat take the least famous candidate that resolves, and
+        // insist it be less famous than what it replaces; at low heat the
+        // first resolving candidate wins.
+        const resolved: Array<{
+          title: string;
+          summary: string;
+          url: string;
+          extract: string;
+          fame: number;
+        }> = [];
+        for (const candidate of verdictS.candidates) {
+          if (candidate.toLowerCase() === subj.title.toLowerCase()) continue;
+          const infos = await gateway.getArticleInfos([candidate]);
+          const info = [...infos.values()].find(
+            (x) => !x.missing && !x.isDisambiguation && x.summary.length > 0,
+          );
+          if (!info) continue;
+          const extract = await gateway.getArticleExtract(info.title);
+          if (extract.trim().length < 600) continue;
+          const candidateFame = await gateway.getLanglinkCount(info.title);
+          resolved.push({
+            title: info.title,
+            summary: info.summary,
+            url: info.url,
+            extract,
+            fame: candidateFame,
+          });
+          if (heat < 0.6) break;
+        }
+        const eligible = resolved.filter((x) => x.fame <= Math.max(fame, fameCeiling));
+        if (eligible.length === 0) break;
+        const pick =
+          heat >= 0.6
+            ? eligible.reduce((a, b) => (b.fame < a.fame ? b : a))
+            : eligible[0];
+        console.log(`  ${subj.title} (fame ${fame}) → ${pick.title} (fame ${pick.fame})`);
+        subj.gloss = `${pick.title} — the specific carrier of ${subj.title}: ${verdictS.why}`.slice(0, 300);
+        subj.title = pick.title;
+        subj.summary = pick.summary;
+        subj.extract = pick.extract;
+        subj.url = pick.url;
+        if (pick.fame <= fameCeiling) break;
       }
     } catch {
       /* an unspecified subject stays a survey; the run continues */
