@@ -143,6 +143,45 @@ export function allocateBeats(
   return beats;
 }
 
+export interface PerformanceCard {
+  /** This beat carries the viewer-facing voice: address or question. */
+  voice: "address" | "question" | "none";
+  /** One wry aside with no structural duty. */
+  aside: boolean;
+  /** A rest reports cleanly: no turn, no reversal. 45% of Burke's paragraphs. */
+  rest: boolean;
+  /** Hard cap; the check pass rejects a beat that blows it. */
+  wordCap: number;
+}
+
+/**
+ * The properties that converged in our output are the ones dealt per unit
+ * in code; the ones that stayed divergent were requested as proportions in
+ * prompts. Voice, rests and length join the dealt side. Rates are measured:
+ * asides 9.1% of moves (~2 beats in 5), questions 0.22/paragraph (~1 in 5),
+ * address raised above Burke's 3.1% of moves toward the second presenter's
+ * pervasive second person; rests at 45%. Dealt on a fixed cycle so runs are
+ * reproducible.
+ */
+export function dealPerformanceCards(plan: RoutePlan): PerformanceCard[] {
+  return plan.steps.map((step, i) => {
+    const isOpen = step.beatKind === "open";
+    const isClose = step.beatKind === "close" || i === plan.steps.length - 1;
+    const voice: PerformanceCard["voice"] =
+      isOpen || isClose || i % 3 === 1
+        ? "address"
+        : i % 5 === 3
+          ? "question"
+          : "none";
+    return {
+      voice,
+      aside: i % 5 === 2 || i % 5 === 4,
+      rest: !isOpen && !isClose && i % 9 in { 0: 1, 4: 1, 6: 1, 8: 1 },
+      wordCap: Math.round(step.words * 1.2),
+    };
+  });
+}
+
 export function assignBridgeKinds(plan: RoutePlan): void {
   const seams = plan.steps.length - 1;
   if (seams < 1) return;

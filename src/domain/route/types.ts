@@ -38,6 +38,15 @@ export interface ScriptOracle {
     previousProse: string;
     /** Subjects live now, to be mentioned without being explained. */
     supporting: Array<{ title: string; gloss: string; firstMention: boolean }>;
+    /** The dealt performance card, realised not negotiated. */
+    card?: {
+      voice: "address" | "question" | "none";
+      aside: boolean;
+      rest: boolean;
+      wordCap: number;
+    };
+    /** Violations from the check pass, when this is a re-roll. */
+    violations?: string[];
     /** The configuration of the beat's own subject. */
     substrate: string;
     institution: string;

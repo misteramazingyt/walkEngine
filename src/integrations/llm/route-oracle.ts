@@ -1,5 +1,5 @@
 import type { RouteOracle, ScriptOracle } from "@/domain/route/types";
-import { beatSchema, carrierVerdictSchema, dwellExpansionSchema, routePlanSchema, specifyVerdictSchema } from "@/schemas/route";
+import { beatSchema, carrierVerdictSchema, dwellExpansionSchema, routePlanSchema, specifyVerdictSchema, beatCheckSchema } from "@/schemas/route";
 import { z } from "zod";
 import { loadPrompt } from "./prompt-files";
 import type { LanguageModelProvider } from "./provider";
@@ -19,10 +19,37 @@ export class LlmScriptOracle implements ScriptOracle {
   constructor(private readonly provider: LanguageModelProvider) {}
 
   async writeBeat(input: Parameters<ScriptOracle["writeBeat"]>[0]) {
+    const card = input.card;
+    const cardLines = card
+      ? [
+          "PERFORMANCE CARD — realise every line of it:",
+          card.voice === "address"
+            ? "  · speak to the viewer directly in this beat (you/your, or the narrator in first person admitting something)"
+            : card.voice === "question"
+              ? "  · ask one real question in this beat and let the piece pursue it"
+              : "  · no direct address in this beat",
+          card.aside
+            ? "  · include one wry aside — a joke or dry remark with no structural duty"
+            : "  · no aside in this beat",
+          card.rest
+            ? "  · this beat is a REST: no turn, no reversal, no surprise. Report cleanly; the rests are what make the turns land"
+            : "",
+          `  · hard cap ${card.wordCap} words`,
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : "";
+    const violationLines =
+      input.violations && input.violations.length > 0
+        ? "THE PREVIOUS ATTEMPT FAILED ITS CARD — fix exactly these, changing nothing else:\n" +
+          input.violations.map((v) => `  · ${v}`).join("\n")
+        : "";
     return this.provider.generateStructured({
       promptId: "write-beat.v1",
-      system: loadPrompt("write-beat.v1"),
+      system: loadPrompt("write-beat.v1") + "\n\n" + loadPrompt("voice.v1"),
       user: [
+        cardLines,
+        violationLines,
         `THE ROUTE IS BUILDING TOWARD: "${input.seed}"`,
         `OBJECT OF INQUIRY (its understanding must accumulate): ${input.objectOfInquiry}`,
         `THE QUESTION BEING ASKED OF IT: ${input.question}`,
@@ -126,6 +153,17 @@ export class LlmRouteOracle implements RouteOracle {
       schema: routePlanSchema,
       temperature: 0.9,
       maxTokens: 60000,
+    });
+  }
+
+  async checkBeat(input: { prose: string }) {
+    return this.provider.generateStructured({
+      promptId: "check-beat.v1",
+      system: loadPrompt("check-beat.v1"),
+      user: `THE PARAGRAPH:\n${input.prose}`,
+      schema: beatCheckSchema,
+      temperature: 0.1,
+      maxTokens: 4000,
     });
   }
 

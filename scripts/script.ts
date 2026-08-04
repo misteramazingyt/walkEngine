@@ -15,7 +15,12 @@
 import "dotenv/config";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { verifyRoute } from "@/domain/route/verify";
-import { allocateBeats, assignBridgeKinds, computeLiveness } from "@/domain/route/braid";
+import {
+  allocateBeats,
+  assignBridgeKinds,
+  computeLiveness,
+  dealPerformanceCards,
+} from "@/domain/route/braid";
 import { RequestBudget } from "@/domain/walk/types";
 import { WikipediaGateway } from "@/integrations/wikipedia/gateway";
 import { GeminiProvider } from "@/integrations/gemini/provider";
@@ -430,6 +435,11 @@ before: ${plan.openingUnderstanding}`);
   }
 
   rule("Writing");
+  // The measured lesson of the whole project: dealt-per-unit properties
+  // converge, prompt-proportion properties do not. Voice, rests and length
+  // are dealt on cards, then each written beat is checked against its card
+  // with one re-roll — the same verify-then-reroll that fixed carriers.
+  const cards = dealPerformanceCards(plan);
   const beats: Array<{ title: string; prose: string; kind: string }> = [];
   const ledger: Array<{ index: number; determination: string }> = [];
   const introduced = new Set<string>();
@@ -473,6 +483,7 @@ before: ${plan.openingUnderstanding}`);
       substrate: subj.substrate,
       institution: subj.institution,
       selfUnderstanding: subj.selfUnderstanding,
+      card: cards[i],
     };
     let out;
     try {
@@ -492,6 +503,47 @@ before: ${plan.openingUnderstanding}`);
         continue;
       }
     }
+    // Check the beat against its card; one re-roll listing exact failures.
+    const card = cards[i];
+    try {
+      const wordsWritten = out.prose.split(/\s+/).length;
+      const report = await routeOracle.checkBeat({ prose: out.prose });
+      const violations: string[] = [];
+      if (wordsWritten > card.wordCap) {
+        violations.push(
+          `the beat runs ${wordsWritten} words against a hard cap of ${card.wordCap}; cut it down`,
+        );
+      }
+      if (report.epochalShare > 0.45) {
+        violations.push(
+          "too many sentences pitched at periods and trends; ground at least two sentences in filmable detail",
+        );
+      }
+      if (!report.opensConcrete) {
+        violations.push(
+          "the first sentence must contain an identifiable person, thing or event — not an abstraction acting on an abstraction",
+        );
+      }
+      if (card.voice === "address" && !report.hasAddress) {
+        violations.push("the card requires direct address: speak to the viewer, or let the narrator admit something in first person");
+      }
+      if (card.voice === "question" && !report.hasQuestion) {
+        violations.push("the card requires one real question");
+      }
+      if (card.aside && !report.hasAside) {
+        violations.push("the card requires one wry aside — a dry remark with no structural duty");
+      }
+      if (card.rest && report.hasTurn) {
+        violations.push("this is a rest beat: remove the turn and simply report");
+      }
+      if (violations.length > 0) {
+        process.stderr.write(`\r  beat ${i + 1}: re-rolling (${violations.length} card violations)   `);
+        out = await scriptOracle.writeBeat({ ...beatArgs, violations });
+      }
+    } catch {
+      /* an unchecked beat is kept; the check must never cost a draft */
+    }
+
     for (const sup of supporting) introduced.add(sup.title);
     introduced.add(subj.title);
     ledger.push({ index: i + 1, determination: st.determination });

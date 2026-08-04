@@ -258,3 +258,12 @@ export const specifyVerdictSchema = z.object({
   /** Why the first candidate carries the role. */
   why: z.string().default(""),
 });
+
+export const beatCheckSchema = z.object({
+  epochalShare: z.number().min(0).max(1),
+  hasTurn: z.boolean(),
+  hasAddress: z.boolean(),
+  hasQuestion: z.boolean(),
+  hasAside: z.boolean(),
+  opensConcrete: z.boolean(),
+});
