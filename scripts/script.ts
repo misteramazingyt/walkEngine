@@ -13,7 +13,7 @@
  */
 
 import "dotenv/config";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { verifyRoute } from "@/domain/route/verify";
 import { allocateBeats, assignBridgeKinds, computeLiveness } from "@/domain/route/braid";
 import { RequestBudget } from "@/domain/walk/types";
@@ -31,7 +31,8 @@ async function main(): Promise<void> {
   let planOnly = false;
   let steps = 0;
   let words = 0;
-  let out2 = "drafts/script.md";
+  let out2 = "";
+  let name = "";
   let planFile = "";
   let reviseCmd = "";
   const rest: string[] = [];
@@ -40,11 +41,24 @@ async function main(): Promise<void> {
     else if (argv[i] === "--steps") steps = Number(argv[++i]);
     else if (argv[i] === "--words") words = Number(argv[++i]);
     else if (argv[i] === "--out") out2 = argv[++i];
+    else if (argv[i] === "--name") name = argv[++i];
     else if (argv[i] === "--brief-file") rest.push(readFileSync(argv[++i], "utf8"));
     else if (argv[i] === "--plan-file") planFile = argv[++i];
     else if (argv[i] === "--revise") reviseCmd = argv[++i];
     else rest.push(argv[i]);
   }
+  // Drafts are named {title}_NN, numbered by existing files, so a listing
+  // reads in the order the drafts were made and the highest number is the
+  // latest. --out still overrides for anyone who wants a specific path.
+  if (!out2) {
+    const slug = (name || "draft").toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+    mkdirSync("drafts", { recursive: true });
+    let n = 1;
+    const pad = () => String(n).padStart(2, "0");
+    while (existsSync(`drafts/${slug}_${pad()}.md`)) n += 1;
+    out2 = `drafts/${slug}_${pad()}.md`;
+  }
+
   let brief = rest.join(" ").trim();
   let savedPlan: RoutePlan | null = null;
   let parsed;
