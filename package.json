@@ -14,7 +14,8 @@
     "braid": "tsx scripts/braid.ts",
     "walk": "tsx scripts/walk.ts",
     "script": "tsx scripts/script.ts",
-    "edit": "tsx scripts/edit.ts"
+    "edit": "tsx scripts/edit.ts",
+    "visuals": "tsx scripts/visuals.ts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.9.1",

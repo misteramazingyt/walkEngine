@@ -27,6 +27,7 @@ import { GeminiProvider } from "@/integrations/gemini/provider";
 import { LlmRouteOracle, LlmScriptOracle } from "@/integrations/llm/route-oracle";
 import type { RoutePlan } from "@/domain/route/types";
 import { createBriefOracle } from "@/server/oracle-factory";
+import { buildVisualGuide } from "./visuals-lib";
 
 const rule = (label: string) =>
   console.log(`\n── ${label} ${"─".repeat(Math.max(0, 64 - label.length))}`);
@@ -558,54 +559,20 @@ before: ${plan.openingUnderstanding}`);
     0,
   );
 
-  // The visual-beat guide: concrete first, verified against Wikimedia
-  // Commons so a proposed image is a real spectatable file, not a wish.
+  // The visual guide lives in its own file, with the fitting Commons files
+  // downloaded into per-beat subfolders beside the draft.
   rule("Visual guide");
-  const commonsSearch = async (q: string): Promise<string[]> => {
-    try {
-      const url =
-        "https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2" +
-        "&list=search&srnamespace=6&srlimit=3&srsearch=" +
-        encodeURIComponent(q);
-      const res = await fetch(url, {
-        headers: { "User-Agent": "motif-walk/0.1 (research tool)" },
-      });
-      const j = (await res.json()) as {
-        query?: { search?: Array<{ title: string }> };
-      };
-      return (j.query?.search ?? []).map((x) => x.title);
-    } catch {
-      return [];
-    }
-  };
-
-  const visualGuide: string[] = ["## Visual guide", ""];
-  for (let i = 0; i < beats.length; i++) {
-    try {
-      const proposal = await routeOracle.proposeVisuals({
-        title: beats[i].title,
-        prose: beats[i].prose,
-      });
-      visualGuide.push(`**${i + 1}. ${beats[i].title}**`);
-      for (const v of proposal.visuals) {
-        if (v.kind === "concrete") {
-          const found = await commonsSearch(v.query);
-          const status = found.length > 0 ? `✓ ${found[0]}` : "✗ nothing on Commons";
-          visualGuide.push(`- concrete · "${v.query}" — ${v.why} [${status}]`);
-          if (v.spectation) visualGuide.push(`  - spectation: ${v.spectation}`);
-        } else {
-          visualGuide.push(
-            `- abstract (licence: ${v.licence || "unstated"}) · "${v.query}" — ${v.why}`,
-          );
-        }
-      }
-      visualGuide.push("");
-      process.stderr.write(`\r  visuals ${i + 1}/${beats.length}   `);
-    } catch {
-      /* a beat without visuals is reported by its absence */
-    }
-  }
-  process.stderr.write("\r                 \r");
+  const stats = await buildVisualGuide({
+    oracle: routeOracle,
+    beats,
+    guidePath: out2.replace(/\.md$/, ".visuals.md"),
+    imagesDir: out2.replace(/\.md$/, "") + "_visuals",
+    onProgress: () => process.stderr.write("."),
+  });
+  process.stderr.write("\n");
+  console.log(
+    `${stats.found} fit · ${stats.unfit} unfit · ${stats.downloaded} downloaded`,
+  );
 
   const lines = [
     `# ${plan.title}`,
@@ -631,7 +598,7 @@ before: ${plan.openingUnderstanding}`);
     const mark = b.kind === "advance" ? "" : ` · ${b.kind}`;
     lines.push(`### ${i + 1}. ${b.title}${mark}`, "", b.prose, "");
   });
-  lines.push("---", "", plan.closing, "", ...visualGuide);
+  lines.push("---", "", plan.closing);
   mkdirSync("drafts", { recursive: true });
   writeFileSync(out2, lines.join("\n"), "utf8");
 
